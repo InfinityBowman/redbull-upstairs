@@ -1,4 +1,4 @@
-import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import { HeadContent, Link, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { Nav } from "@/components/Nav";
 import appCss from "../styles.css?url";
 
@@ -17,7 +17,20 @@ export const Route = createRootRoute({
 
   component: RootLayout,
   shellComponent: RootDocument,
+  notFoundComponent: NotFound,
 });
+
+function NotFound() {
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 py-32 text-center">
+      <h1 className="text-4xl font-bold">404</h1>
+      <p className="text-muted-foreground">This page doesn't exist.</p>
+      <Link to="/" className="text-sm text-primary underline underline-offset-4 hover:text-primary/80">
+        Back to dashboard
+      </Link>
+    </div>
+  );
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
