@@ -9,6 +9,14 @@ export function NeighborhoodBaseLayer() {
 
   const selectedId =
     state.selected?.type === 'neighborhood' ? state.selected.id : null
+  // Parse to number for direct comparison with NHD_NUM (integer in GeoJSON)
+  const selectedNum = selectedId ? parseInt(selectedId, 10) : null
+
+  const matchExpr: mapboxgl.Expression = [
+    '==',
+    ['get', 'NHD_NUM'],
+    selectedNum ?? -1,
+  ]
 
   return (
     <Source id="neighborhood-base" type="geojson" data={data.neighborhoods}>
@@ -19,7 +27,7 @@ export function NeighborhoodBaseLayer() {
         paint={{
           'fill-color': [
             'case',
-            ['==', ['to-string', ['get', 'NHD_NUM']], selectedId ?? ''],
+            matchExpr,
             'rgba(99,102,241,0.25)',
             'transparent',
           ],
@@ -29,20 +37,9 @@ export function NeighborhoodBaseLayer() {
       <Layer
         id="neighborhood-base-outline"
         type="line"
-        beforeId="waterway-label"
         paint={{
-          'line-color': [
-            'case',
-            ['==', ['to-string', ['get', 'NHD_NUM']], selectedId ?? ''],
-            '#6366f1',
-            'rgba(255,255,255,0.12)',
-          ],
-          'line-width': [
-            'case',
-            ['==', ['to-string', ['get', 'NHD_NUM']], selectedId ?? ''],
-            2.5,
-            0.5,
-          ],
+          'line-color': ['case', matchExpr, '#6366f1', 'rgba(255,255,255,0.12)'],
+          'line-width': ['case', matchExpr, 2.5, 0.5],
         }}
       />
       <Layer

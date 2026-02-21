@@ -48,6 +48,7 @@ export interface ExplorerState {
   selected: SelectedEntity | null
   detailPanelOpen: boolean
   analyticsPanelExpanded: boolean
+  analyticsPanelHeight: number
 }
 
 // ── Actions ────────────────────────────────────────────────
@@ -62,6 +63,7 @@ export type ExplorerAction =
   | { type: 'SELECT_ENTITY'; entity: SelectedEntity }
   | { type: 'CLEAR_SELECTION' }
   | { type: 'TOGGLE_ANALYTICS' }
+  | { type: 'SET_ANALYTICS_HEIGHT'; height: number }
   | { type: 'CLOSE_DETAIL' }
 
 // ── Data Context ───────────────────────────────────────────
@@ -105,4 +107,5 @@ export const initialExplorerState: ExplorerState = {
   selected: null,
   detailPanelOpen: false,
   analyticsPanelExpanded: false,
+  analyticsPanelHeight: 300,
 }

@@ -1,8 +1,10 @@
-import { useData, useExplorer } from './ExplorerProvider'
+import { useCallback, useEffect, useRef } from 'react'
+import { useData, useExplorer } from '@/components/explorer/ExplorerProvider'
 import { ComplaintsAnalytics } from './analytics/ComplaintsAnalytics'
 import { TransitAnalytics } from './analytics/TransitAnalytics'
 import { VacancyAnalytics } from './analytics/VacancyAnalytics'
 import { NeighborhoodAnalytics } from './analytics/NeighborhoodAnalytics'
+import { ChartBuilder } from './analytics/ChartBuilder'
 import {
   Collapsible,
   CollapsibleContent,
@@ -12,14 +14,51 @@ import {
 export function AnalyticsPanel() {
   const { state, dispatch } = useExplorer()
   const data = useData()
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null)
+  const heightRef = useRef(state.analyticsPanelHeight)
+
+  useEffect(() => {
+    heightRef.current = state.analyticsPanelHeight
+  }, [state.analyticsPanelHeight])
+
+  // Clean up window listeners if component unmounts mid-drag
+  useEffect(() => {
+    return () => {
+      dragRef.current = null
+    }
+  }, [])
+
+  const onDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      dragRef.current = { startY: e.clientY, startH: heightRef.current }
+
+      const onMove = (ev: MouseEvent) => {
+        if (!dragRef.current) return
+        const delta = dragRef.current.startY - ev.clientY
+        dispatch({
+          type: 'SET_ANALYTICS_HEIGHT',
+          height: dragRef.current.startH + delta,
+        })
+      }
+
+      const onUp = () => {
+        dragRef.current = null
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+      }
+
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUp)
+    },
+    [dispatch],
+  )
 
   const hasActiveLayer =
     state.layers.complaints ||
     state.layers.transit ||
     state.layers.vacancy ||
     state.layers.foodAccess
-
-  if (!hasActiveLayer) return null
 
   const showNeighborhood = state.selected?.type === 'neighborhood'
 
@@ -77,16 +116,34 @@ export function AnalyticsPanel() {
       )}
 
       <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-[collapse-up_200ms_ease-out] data-[state=open]:animate-[collapse-down_250ms_ease-out]">
-        <div className="max-h-[440px] overflow-y-auto px-4 py-3">
+        {/* Drag handle */}
+        <div
+          onMouseDown={onDragStart}
+          className="group flex h-1.5 cursor-row-resize items-center justify-center border-b border-border/40 hover:bg-accent/30"
+        >
+          <div className="h-0.5 w-8 rounded-full bg-muted-foreground/30 transition-colors group-hover:bg-muted-foreground/60" />
+        </div>
+
+        <div
+          className="overflow-y-auto px-4 py-3"
+          style={{ height: state.analyticsPanelHeight }}
+        >
           {showNeighborhood ? (
             <NeighborhoodAnalytics
               id={(state.selected as { type: 'neighborhood'; id: string }).id}
             />
-          ) : modules.length === 1 ? (
-            modules[0]
           ) : (
-            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-              {modules}
+            <div className="flex flex-col gap-6">
+              {hasActiveLayer && modules.length > 0 && (
+                modules.length === 1 ? (
+                  modules[0]
+                ) : (
+                  <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                    {modules}
+                  </div>
+                )
+              )}
+              <ChartBuilder />
             </div>
           )}
         </div>

@@ -46,6 +46,11 @@ function explorerReducer(
       return { ...state, detailPanelOpen: false }
     case 'TOGGLE_ANALYTICS':
       return { ...state, analyticsPanelExpanded: !state.analyticsPanelExpanded }
+    case 'SET_ANALYTICS_HEIGHT':
+      return {
+        ...state,
+        analyticsPanelHeight: Math.min(800, Math.max(150, action.height)),
+      }
     default:
       return state
   }
