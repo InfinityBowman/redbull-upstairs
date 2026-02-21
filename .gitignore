@@ -21,3 +21,4 @@ python/data/
 *.egg-info/
 public/data/*
 routeTree.gen.ts
+_reference/*

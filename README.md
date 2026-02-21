@@ -2,7 +2,7 @@
 
 A unified urban data analytics platform for the City of St. Louis, combining three hackathon prototypes — **311 Pattern Detector**, **Transit Equity Mapper**, and **Vacancy Triage** — into a single cross-dataset dashboard with a **Neighborhood Report Card** feature.
 
-Built for the *St. Louis Sustainable Urban Innovation* hackathon track.
+Built for the _St. Louis Sustainable Urban Innovation_ hackathon track.
 
 ## Views
 
@@ -47,17 +47,17 @@ City-wide KPI cards, a choropleth map of complaint density, top 5 hotspot neighb
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | [TanStack Start](https://tanstack.com/start) (SSR + server functions) |
-| Router | [TanStack Router](https://tanstack.com/router) (file-based, type-safe) |
-| UI | React 19 + Tailwind CSS v4 + [shadcn/ui](https://ui.shadcn.com) (radix-nova) |
-| Map | [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) via [react-map-gl](https://visgl.github.io/react-map-gl/) |
-| Charts | [Recharts](https://recharts.org/) |
-| Hosting | [Cloudflare Workers](https://developers.cloudflare.com/workers/) via `@cloudflare/vite-plugin` |
-| Data | Static JSON/GeoJSON in `public/data/`, mock vacancy data generated at runtime |
-| Data Pipeline | Python 3.12 + [uv](https://docs.astral.sh/uv/) (pandas, geopandas, shapely) |
-| Analysis | Jupyter notebooks with matplotlib + folium |
+| Layer         | Technology                                                                                                      |
+| ------------- | --------------------------------------------------------------------------------------------------------------- |
+| Framework     | [TanStack Start](https://tanstack.com/start) (SSR + server functions)                                           |
+| Router        | [TanStack Router](https://tanstack.com/router) (file-based, type-safe)                                          |
+| UI            | React 19 + Tailwind CSS v4 + [shadcn/ui](https://ui.shadcn.com) (radix-nova)                                    |
+| Map           | [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) via [react-map-gl](https://visgl.github.io/react-map-gl/) |
+| Charts        | [Recharts](https://recharts.org/)                                                                               |
+| Hosting       | [Cloudflare Workers](https://developers.cloudflare.com/workers/) via `@cloudflare/vite-plugin`                  |
+| Data          | Static JSON/GeoJSON in `public/data/`, mock vacancy data generated at runtime                                   |
+| Data Pipeline | Python 3.12 + [uv](https://docs.astral.sh/uv/) (pandas, geopandas, shapely)                                     |
+| Analysis      | Jupyter notebooks with matplotlib + folium                                                                      |
 
 ## Getting Started
 
@@ -173,14 +173,14 @@ python/
 
 ## Data Sources
 
-| Dataset | Source | Format |
-|---|---|---|
-| 311 Service Requests | [City of St. Louis CSB](https://www.stlouis-mo.gov/data/) | Pre-processed JSON from CSV |
-| Neighborhood Boundaries | City of St. Louis Open Data | GeoJSON |
-| Transit (GTFS) | [Metro Transit](https://www.metrostlouis.org/developer-resources/) | Converted from GTFS to GeoJSON |
-| Food Desert Tracts | USDA Economic Research Service (LILA definitions) | Simplified GeoJSON |
-| Grocery Stores | Manual compilation + geocoding | GeoJSON |
-| Vacant Properties | Mock data modeled on LRA inventory + CSB formats | Generated at runtime |
+| Dataset                 | Source                                                             | Format                         |
+| ----------------------- | ------------------------------------------------------------------ | ------------------------------ |
+| 311 Service Requests    | [City of St. Louis CSB](https://www.stlouis-mo.gov/data/)          | Pre-processed JSON from CSV    |
+| Neighborhood Boundaries | City of St. Louis Open Data                                        | GeoJSON                        |
+| Transit (GTFS)          | [Metro Transit](https://www.metrostlouis.org/developer-resources/) | Converted from GTFS to GeoJSON |
+| Food Desert Tracts      | USDA Economic Research Service (LILA definitions)                  | Simplified GeoJSON             |
+| Grocery Stores          | Manual compilation + geocoding                                     | GeoJSON                        |
+| Vacant Properties       | Mock data modeled on LRA inventory + CSB formats                   | Generated at runtime           |
 
 ## Algorithms
 
@@ -188,14 +188,14 @@ python/
 
 Six weighted factors:
 
-| Factor | Weight | Logic |
-|---|---|---|
-| Condition | 25% | Inverse of 1–5 rating (condemned = 100) |
-| 311 Complaint Density | 20% | Nearby count / 20, capped at 100 |
-| Lot Size | 10% | sq ft / 10,000, capped at 100 |
-| Ownership | 15% | LRA=100, City=70, Private=scaled by tax delinquency |
-| Proximity | 15% | Pre-computed distance to occupied properties |
-| Tax Delinquency | 15% | Years / 10, capped at 100 |
+| Factor                | Weight | Logic                                               |
+| --------------------- | ------ | --------------------------------------------------- |
+| Condition             | 25%    | Inverse of 1–5 rating (condemned = 100)             |
+| 311 Complaint Density | 20%    | Nearby count / 20, capped at 100                    |
+| Lot Size              | 10%    | sq ft / 10,000, capped at 100                       |
+| Ownership             | 15%    | LRA=100, City=70, Private=scaled by tax delinquency |
+| Proximity             | 15%    | Pre-computed distance to occupied properties        |
+| Tax Delinquency       | 15%    | Years / 10, capped at 100                           |
 
 Best-use determination scores each property for housing, solar, and garden fitness independently and picks the highest.
 

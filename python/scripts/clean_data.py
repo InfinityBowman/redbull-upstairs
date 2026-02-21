@@ -358,7 +358,9 @@ def fetch_weather(year: int) -> dict:
 # ── 2. Neighborhood Boundaries ───────────────────────────────────────────────
 
 def process_neighborhoods() -> None:
-    """Convert neighborhood shapefiles to GeoJSON."""
+    """Convert neighborhood shapefiles to GeoJSON (reprojected to WGS84)."""
+    import geopandas as gpd
+
     nhd_dir = RAW_DIR / "neighborhoods"
     require_raw(nhd_dir, "neighborhoods")
 
@@ -367,7 +369,13 @@ def process_neighborhoods() -> None:
         sys.exit("No .shp files found in raw/neighborhoods/")
 
     log(f"Converting {shp_files[0].name} to GeoJSON...")
-    geojson = shapefile_to_geojson(str(shp_files[0]))
+    gdf = gpd.read_file(shp_files[0])
+
+    if gdf.crs and gdf.crs != "EPSG:4326":
+        log(f"Reprojecting from {gdf.crs} to EPSG:4326...")
+        gdf = gdf.to_crs(epsg=4326)
+
+    geojson = json.loads(gdf.to_json())
     log(f"{len(geojson['features'])} neighborhood features")
 
     out_path = OUT_DIR / "neighborhoods.geojson"

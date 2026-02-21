@@ -1,57 +1,66 @@
 import {
-  ResponsiveContainer,
-  BarChart,
   Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
+  BarChart,
   CartesianGrid,
   Cell,
-} from "recharts";
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 interface HourlyChartProps {
-  data: Record<string, number>;
-  height?: number;
+  data: Record<string, number>
+  height?: number
 }
 
 const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => {
-  if (h === 0) return "12am";
-  if (h < 12) return `${h}am`;
-  if (h === 12) return "12pm";
-  return `${h - 12}pm`;
-});
+  if (h === 0) return '12am'
+  if (h < 12) return `${h}am`
+  if (h === 12) return '12pm'
+  return `${h - 12}pm`
+})
 
 export function HourlyChart({ data, height = 300 }: HourlyChartProps) {
-  const max = Math.max(...Object.values(data), 1);
+  const max = Math.max(...Object.values(data), 1)
   const chartData = Array.from({ length: 24 }, (_, h) => ({
     hour: HOUR_LABELS[h],
     value: data[String(h)] || 0,
-  }));
+  }))
 
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-        <XAxis dataKey="hour" stroke="var(--color-muted-foreground)" fontSize={10} interval={2} />
+        <XAxis
+          dataKey="hour"
+          stroke="var(--color-muted-foreground)"
+          fontSize={10}
+          interval={2}
+        />
         <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
         <Tooltip
           contentStyle={{
-            background: "var(--color-card)",
-            border: "1px solid var(--color-border)",
+            background: 'var(--color-card)',
+            border: '1px solid var(--color-border)',
             borderRadius: 8,
             fontSize: 12,
-            color: "var(--color-foreground)",
+            color: 'var(--color-foreground)',
           }}
         />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
           {chartData.map((d, i) => {
-            const ratio = d.value / max;
+            const ratio = d.value / max
             const fill =
-              ratio > 0.8 ? "#ef4444aa" : ratio > 0.5 ? "#f59e0baa" : "#6366f1aa";
-            return <Cell key={i} fill={fill} />;
+              ratio > 0.8
+                ? '#ef4444aa'
+                : ratio > 0.5
+                  ? '#f59e0baa'
+                  : '#6366f1aa'
+            return <Cell key={i} fill={fill} />
           })}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
-  );
+  )
 }

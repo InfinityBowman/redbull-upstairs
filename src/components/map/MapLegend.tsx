@@ -1,14 +1,14 @@
-import { CHORO_COLORS } from "@/lib/colors";
+import { CHORO_COLORS } from '@/lib/colors'
 
 interface LegendItem {
-  color: string;
-  label: string;
+  color: string
+  label: string
 }
 
 interface MapLegendProps {
-  title: string;
-  items?: LegendItem[];
-  gradient?: boolean;
+  title: string
+  items?: Array<LegendItem>
+  gradient?: boolean
 }
 
 export function MapLegend({ title, items, gradient }: MapLegendProps) {
@@ -20,7 +20,7 @@ export function MapLegend({ title, items, gradient }: MapLegendProps) {
           <div
             className="h-3 w-20 rounded-sm"
             style={{
-              background: `linear-gradient(to right, ${CHORO_COLORS.join(", ")})`,
+              background: `linear-gradient(to right, ${CHORO_COLORS.join(', ')})`,
             }}
           />
           <div className="flex w-20 justify-between">
@@ -42,5 +42,5 @@ export function MapLegend({ title, items, gradient }: MapLegendProps) {
         </div>
       )}
     </div>
-  );
+  )
 }
