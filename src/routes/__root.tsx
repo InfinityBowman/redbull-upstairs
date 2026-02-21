@@ -1,0 +1,45 @@
+import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import { Nav } from "@/components/Nav";
+import appCss from "../styles.css?url";
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "STL Urban Analytics" },
+      { name: "description", content: "Unified urban data analytics for St. Louis — 311 Complaints, Transit Equity, Vacancy Triage" },
+    ],
+    links: [
+      { rel: "stylesheet", href: appCss },
+    ],
+  }),
+
+  component: RootLayout,
+  shellComponent: RootDocument,
+});
+
+function RootDocument({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body className="min-h-screen bg-background text-foreground antialiased">
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+function RootLayout() {
+  return (
+    <>
+      <Nav />
+      <main className="mx-auto max-w-[1600px] px-5 py-5">
+        <Outlet />
+      </main>
+    </>
+  );
+}
