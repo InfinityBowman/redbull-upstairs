@@ -38,7 +38,7 @@ export function NeighborhoodBaseLayer() {
         id="neighborhood-base-outline"
         type="line"
         paint={{
-          'line-color': ['case', matchExpr, '#6366f1', 'rgba(255,255,255,0.12)'],
+          'line-color': ['case', matchExpr, '#6366f1', 'rgba(0,0,0,0.12)'],
           'line-width': ['case', matchExpr, 2.5, 0.5],
         }}
       />
@@ -52,9 +52,9 @@ export function NeighborhoodBaseLayer() {
           'text-allow-overlap': false,
         }}
         paint={{
-          'text-color': 'rgba(255,255,255,0.5)',
-          'text-halo-color': 'rgba(0,0,0,0.6)',
-          'text-halo-width': 1,
+          'text-color': 'rgba(0,0,0,0.55)',
+          'text-halo-color': 'rgba(255,255,255,0.8)',
+          'text-halo-width': 1.2,
         }}
       />
     </Source>

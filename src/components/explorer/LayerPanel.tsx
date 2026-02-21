@@ -71,16 +71,45 @@ export function LayerPanel() {
           {/* Contextual sub-filters when layer is active */}
           {state.layers[layer.key] && (
             <div className="ml-8 mt-1 mb-2 flex flex-col gap-1.5">
-              {layer.key === 'complaints' && <ComplaintsFilters />}
-              {layer.key === 'transit' && <TransitFilters />}
-              {layer.key === 'vacancy' && <VacancyFilters />}
-              {layer.key === 'foodAccess' && <FoodAccessFilters />}
+              <LayerContent layerKey={layer.key} />
             </div>
           )}
         </div>
       ))}
     </div>
   )
+}
+
+function LoadingIndicator() {
+  return (
+    <div className="flex items-center gap-2 py-1 text-[0.6rem] text-muted-foreground">
+      <div className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+      Loading data...
+    </div>
+  )
+}
+
+function LayerContent({ layerKey }: { layerKey: keyof LayerToggles }) {
+  const data = useData()
+
+  const isLoading =
+    (layerKey === 'complaints' && !data.csbData) ||
+    (layerKey === 'transit' && !data.stops) ||
+    (layerKey === 'vacancy' && !data.vacancyData) ||
+    (layerKey === 'foodAccess' && !data.foodDeserts)
+
+  if (isLoading) return <LoadingIndicator />
+
+  switch (layerKey) {
+    case 'complaints':
+      return <ComplaintsFilters />
+    case 'transit':
+      return <TransitFilters />
+    case 'vacancy':
+      return <VacancyFilters />
+    case 'foodAccess':
+      return <FoodAccessFilters />
+  }
 }
 
 function ComplaintsFilters() {

@@ -40,15 +40,11 @@ This is a St. Louis urban analytics dashboard combining three hackathon prototyp
 
 File-based routing via TanStack Router. Route tree is auto-generated in `src/routeTree.gen.ts` — do not edit manually.
 
-- `/` — Overview dashboard (city-wide KPIs, choropleth, hotspot list)
-- `/complaints` — 311 Pattern Detector (choropleth/heatmap, category filters, time charts, weather correlation)
-- `/transit` — Transit Equity Mapper (food deserts, transit stops, equity gap scoring)
-- `/vacancy` — Vacancy Triage (~800 mock properties, six-factor scoring, best-use recommendations)
-- `/neighborhood/:id` — Neighborhood Report Card (cross-dataset profile, composite equity score)
+- `/` — Unified Map Explorer (fullscreen map with layer toggles, detail panel, analytics drawer)
 
 ### Data Flow
 
-All data lives in `public/data/` as static JSON/GeoJSON files. Components fetch these via `fetch()` in `useEffect`, aggregate in React state, and memoize expensive computations with `useMemo`. No global state manager — all state is local.
+All data lives in `public/data/` as static JSON/GeoJSON files. `ExplorerProvider` manages all state via `useReducer` and data fetching via `useState` + lazy loading. Base datasets (neighborhoods, routes, grocery stores) load on mount; layer-specific datasets load on toggle. Expensive computations are memoized with `useMemo`.
 
 Key datasets: `csb_latest.json` (311 complaints), `neighborhoods.geojson` (79 boundaries), `stops.geojson`/`shapes.geojson`/`routes.json` (transit GTFS), `food_deserts.geojson`, `grocery_stores.geojson`. Vacancy properties are mock data generated deterministically at runtime in `src/lib/vacancy-data.ts`.
 
@@ -56,13 +52,19 @@ The data pipeline is split into two scripts: `python/scripts/fetch_raw.py` downl
 
 ### Code Organization
 
-- `src/routes/` — Page components (each route is self-contained with data fetching + rendering)
-- `src/components/` — Reusable UI: `map/` (MapProvider, MapLegend), `charts/` (TimeSeriesChart, CategoryBarChart, HourlyChart, YoYChart), `ui/` (shadcn), KpiCard, HotspotList, Nav
-- `src/lib/` — Business logic: `analysis.ts` (hotspot detection, weather correlation), `equity.ts` (haversine, equity scoring), `scoring.ts` (vacancy triage), `colors.ts` (choropleth scales), `types.ts` (all interfaces), `vacancy-data.ts` (mock generator)
+- `src/routes/` — `index.tsx` renders `<MapExplorer />`, `__root.tsx` provides layout shell with Nav
+- `src/components/explorer/` — Core app: `MapExplorer.tsx` (CSS grid layout), `ExplorerProvider.tsx` (state + data), `ExplorerMap.tsx` (Mapbox canvas + click handler), `LayerPanel.tsx` (left rail), `DetailPanel.tsx` (right rail), `AnalyticsPanel.tsx` (bottom drawer)
+- `src/components/explorer/layers/` — Map layers: `NeighborhoodBaseLayer`, `ComplaintsLayer`, `TransitLayer`, `VacancyLayer`, `FoodAccessLayer`
+- `src/components/explorer/detail/` — Entity detail views: `NeighborhoodDetail`, `VacancyDetail`, `StopDetail`, `GroceryDetail`, `FoodDesertDetail`
+- `src/components/explorer/analytics/` — Analytics modules: `ComplaintsAnalytics`, `TransitAnalytics`, `VacancyAnalytics`, `NeighborhoodAnalytics`, `ChartBuilder`
+- `src/components/map/` — `MapProvider` (Mapbox wrapper), `MapLegend`
+- `src/components/charts/` — Reusable charts: `TimeSeriesChart`, `CategoryBarChart`, `HourlyChart`, `WeekdayChart`, `WeatherInsights`
+- `src/components/ui/` — shadcn/ui primitives
+- `src/lib/` — Business logic: `analysis.ts` (hotspot detection, weather correlation), `equity.ts` (haversine, equity scoring), `scoring.ts` (vacancy triage), `colors.ts` (choropleth scales), `types.ts` (all interfaces), `explorer-types.ts` (state/action types), `vacancy-data.ts` (mock generator), `chart-datasets.ts` (ChartBuilder datasets)
 
 ### Map Setup
 
-Maps use Mapbox GL via `react-map-gl`. The shared wrapper is `MapProvider` centered on STL (38.635, -90.245, zoom 11.5) with dark-v11 style. Layers are rendered using `<Source>` and `<Layer>` components.
+Maps use Mapbox GL via `react-map-gl`. The shared wrapper is `MapProvider` centered on STL (38.635, -90.245, zoom 11.5) with light-v11 style. Layers are rendered using `<Source>` and `<Layer>` components. Click handling uses `queryRenderedFeatures` with priority ordering (vacancy > stops > grocery > food desert > neighborhood).
 
 ## Documentation
 

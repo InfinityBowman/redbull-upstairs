@@ -23,14 +23,21 @@ export function FoodDesertDetail({ id }: { id: string }) {
     ? polygonCentroid(tract.geometry.coordinates as Array<Array<Array<number>>>)
     : null
 
-  // Nearby stops
-  const nearbyStops = useMemo(() => {
-    if (!data.stops || !centroid) return 0
-    return data.stops.features.filter((stop) => {
+  // Nearby stops + frequency
+  const nearbyStopData = useMemo(() => {
+    if (!data.stops || !centroid) return { count: 0, frequency: 0 }
+    let count = 0
+    let frequency = 0
+    data.stops.features.forEach((stop) => {
       const [lon, lat] = stop.geometry.coordinates as Array<number>
-      return haversine(centroid[0], centroid[1], lat, lon) <= 0.5
-    }).length
-  }, [data.stops, centroid])
+      if (haversine(centroid[0], centroid[1], lat, lon) <= 0.5) {
+        count++
+        const stats = data.stopStats?.[stop.properties.stop_id as string]
+        if (stats) frequency += stats.trip_count
+      }
+    })
+    return { count, frequency }
+  }, [data.stops, data.stopStats, centroid])
 
   // Nearest grocery
   const nearestGrocery = useMemo(() => {
@@ -46,10 +53,35 @@ export function FoodDesertDetail({ id }: { id: string }) {
     return nearest
   }, [data.groceryStores, centroid])
 
-  // Equity score
+  // Grocery accessible via transit
+  const groceryAccessible = useMemo(() => {
+    if (!data.stops || !data.stopStats || !data.groceryStores || !centroid)
+      return false
+    for (const store of data.groceryStores.features) {
+      const [sLon, sLat] = store.geometry.coordinates as Array<number>
+      for (const stop of data.stops.features) {
+        const [bLon, bLat] = stop.geometry.coordinates as Array<number>
+        if (haversine(sLat, sLon, bLat, bLon) > 0.25) continue
+        const stats = data.stopStats[stop.properties.stop_id as string]
+        if (!stats?.routes.length) continue
+        for (const tractStop of data.stops.features) {
+          const [tLon, tLat] = tractStop.geometry.coordinates as Array<number>
+          if (haversine(centroid[0], centroid[1], tLat, tLon) > 0.5) continue
+          const tractStats =
+            data.stopStats[tractStop.properties.stop_id as string]
+          if (tractStats?.routes.some((r) => stats.routes.includes(r)))
+            return true
+        }
+      }
+    }
+    return false
+  }, [data.stops, data.stopStats, data.groceryStores, centroid])
+
+  // Equity score — matches computeEquityGaps factors
   const equityScore = useMemo(() => {
     let score = 0
-    score += Math.min(nearbyStops * 10, 30)
+    score += Math.min(nearbyStopData.count * 10, 30)
+    score += Math.min(nearbyStopData.frequency * 0.5, 20)
     if (nearestGrocery) {
       score +=
         nearestGrocery.dist <= 0.5
@@ -60,8 +92,9 @@ export function FoodDesertDetail({ id }: { id: string }) {
               ? 5
               : 0
     }
+    score += groceryAccessible ? 25 : 0
     return Math.round(score)
-  }, [nearbyStops, nearestGrocery])
+  }, [nearbyStopData, nearestGrocery, groceryAccessible])
 
   if (!tract || !props) {
     return <div className="text-xs text-muted-foreground">Tract not found</div>
@@ -103,7 +136,7 @@ export function FoodDesertDetail({ id }: { id: string }) {
 
       <div className="mt-2 rounded-lg bg-muted p-3">
         <div className="mb-1.5 text-xs font-semibold">Access Analysis</div>
-        <DetailRow label="Transit Stops (0.5mi)" value={String(nearbyStops)} />
+        <DetailRow label="Transit Stops (0.5mi)" value={String(nearbyStopData.count)} />
         {nearestGrocery && (
           <>
             <DetailRow label="Nearest Grocery" value={nearestGrocery.name} />

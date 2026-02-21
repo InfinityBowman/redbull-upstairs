@@ -156,6 +156,8 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
     ;(Object.keys(state.layers) as Array<keyof LayerToggles>).forEach((layer) => {
       if (state.layers[layer]) loadLayerData(layer)
     })
+    // Transit analytics needs food desert data for equity gap scoring
+    if (state.layers.transit) loadLayerData('foodAccess')
   }, [state.layers, loadLayerData])
 
   // Eagerly load ALL datasets when a neighborhood is selected
