@@ -14,7 +14,7 @@ export interface CSBData {
   categories: Record<string, number>
   neighborhoods: Record<string, NeighborhoodStats>
   dailyCounts: Record<string, number>
-  monthly: Record<string, number>
+  monthly: Record<string, Record<string, number>>
   hourly: Record<string, number>
   weekday: Record<string, number>
   heatmapPoints: Array<[number, number, string, string?, string?]> // [lat, lng, category, date?, neighborhood?]

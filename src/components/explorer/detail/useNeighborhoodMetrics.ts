@@ -11,7 +11,7 @@ export interface NeighborhoodMetrics {
   vacancyScore: number
   totalComplaints: number
   stopsNearby: number
-  tripsPerDay: number
+  totalTrips: number
   nearestGroceryDist: number
   nearestGroceryName: string
   vacancyCount: number
@@ -102,7 +102,7 @@ export function useNeighborhoodMetrics(id: string | null): NeighborhoodMetrics |
       vacancyScore: 100 - avgVacancyScore,
       totalComplaints: hood?.total ?? 0,
       stopsNearby: nearbyStops.length,
-      tripsPerDay: totalFrequency,
+      totalTrips: totalFrequency,
       nearestGroceryDist,
       nearestGroceryName,
       vacancyCount: hoodVacancies.length,

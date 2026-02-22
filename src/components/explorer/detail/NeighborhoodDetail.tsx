@@ -153,10 +153,12 @@ export function NeighborhoodDetail({ id }: { id: string }) {
               .join(', ') || 'None'
           }
         />
-        <DetailRow label="Trips/day" value={String(metrics.tripsPerDay)} />
+        <DetailRow label="Total Trips" value={String(metrics.totalTrips)} />
         <DetailRow
           label="Nearest Grocery"
-          value={`${metrics.nearestGroceryName} (${metrics.nearestGroceryDist.toFixed(2)}mi)`}
+          value={metrics.nearestGroceryDist === Infinity
+            ? 'N/A'
+            : `${metrics.nearestGroceryName} (${metrics.nearestGroceryDist.toFixed(2)}mi)`}
         />
         {isDesert && (
           <div className="pt-1.5 text-[0.65rem] font-semibold text-red-400">

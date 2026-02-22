@@ -35,20 +35,13 @@ export function CrimeLayer() {
     if (!data.neighborhoods || !data.crimeData) return null
 
     if (timeActive) {
-      // Build name→nhdNum lookup from GeoJSON features
-      const nameToNum: Record<string, string> = {}
-      for (const f of data.neighborhoods.features) {
-        const name = f.properties.NHD_NAME
-        const num = String(f.properties.NHD_NUM).padStart(2, '0')
-        if (name) nameToNum[name] = num
-      }
-      // Count filtered points per NHD_NUM
+      // Count filtered points per NHD_NUM (heatmap stores zero-padded NHD_NUM)
       const counts: Record<string, number> = {}
       for (const p of filteredPoints) {
         const hood = p[4]
         if (!hood) continue
-        const num = nameToNum[hood]
-        if (num) counts[num] = (counts[num] ?? 0) + 1
+        const num = String(hood).padStart(2, '0')
+        counts[num] = (counts[num] ?? 0) + 1
       }
       const features = data.neighborhoods.features.map((f) => ({
         ...f,

@@ -188,9 +188,9 @@ export function NeighborhoodComparePanel({
               valueB={metricsB.stopsNearby}
             />
             <CompareRow
-              label="Trips/Day"
-              valueA={metricsA.tripsPerDay}
-              valueB={metricsB.tripsPerDay}
+              label="Total Trips"
+              valueA={metricsA.totalTrips}
+              valueB={metricsB.totalTrips}
             />
             <CompareRow
               label="Grocery (mi)"

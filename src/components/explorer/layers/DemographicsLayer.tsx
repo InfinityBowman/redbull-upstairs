@@ -39,7 +39,7 @@ export function DemographicsLayer() {
     if (!choroplethGeo) return dynamicBreaks([])
     const values = choroplethGeo.features
       .map((f) => f.properties.demoValue)
-      .filter((v) => v > 0)
+      .filter((v) => v !== 0)
     return dynamicBreaks(values)
   }, [choroplethGeo])
 

@@ -180,10 +180,11 @@ export function computeKPIs(data: CSBData) {
 
   const dailyVals = Object.entries(data.dailyCounts)
   const peakDay = dailyVals.sort((a, b) => b[1] - a[1])[0] ?? ['N/A', 0]
+  const actualDays = Object.keys(data.dailyCounts).length || 365
 
   return {
     totalRequests: data.totalRequests,
-    perDay: Math.round(data.totalRequests / 365),
+    perDay: Math.round(data.totalRequests / actualDays),
     closedPct,
     closedCount,
     avgResolution: +avgResolution.toFixed(1),

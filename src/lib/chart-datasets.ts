@@ -233,7 +233,7 @@ export const DATASET_REGISTRY: DatasetDef[] = [
       return monthNames.map((month, mi) => {
         const row: Record<string, string | number> = { month }
         for (const year of years) {
-          const monthKey = String(mi + 1).padStart(2, '0')
+          const monthKey = `${year}-${String(mi + 1).padStart(2, '0')}`
           row[`y${year}`] = data.trendsData!.yearlyMonthly[year]?.[monthKey] ?? 0
         }
         return row

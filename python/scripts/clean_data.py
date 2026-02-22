@@ -254,10 +254,13 @@ def process_csb() -> None:
                 heatmap_points.append([lat, lng, cat, date_str or "", hood_name])
     log(f"Heatmap points (all years): {len(heatmap_points):,}")
 
-    # Finalize neighborhoods
+    # Finalize neighborhoods — key by zero-padded NHD_NUM
     final_hoods = {}
-    for i, (key, nb) in enumerate(sorted(neighborhoods.items(), key=lambda x: -x[1]["total"])):
-        hood_id = str(i + 1).zfill(2)
+    for key, nb in neighborhoods.items():
+        try:
+            hood_id = str(int(key)).zfill(2)
+        except (ValueError, TypeError):
+            hood_id = key  # fallback for non-numeric
         res_days = nb.pop("_resolution_days", [])
         avg_res = round(sum(res_days) / len(res_days), 1) if res_days else 0
         top_cats = dict(nb["topCategories"].most_common(5))
@@ -850,7 +853,8 @@ def process_crime() -> None:
                 pass
         if lat is not None and lng is not None:
             if 38.0 < lat < 39.0 and -91.0 < lng < -89.0:
-                heatmap_points.append([lat, lng, offense, date_str or "", hood_name])
+                hood_id_for_heatmap = str(int(hood_num)).zfill(2) if hood_num and hood_num.isdigit() else hood_name
+                heatmap_points.append([lat, lng, offense, date_str or "", hood_id_for_heatmap])
 
     # Finalize neighborhoods — key by zero-padded NHD_NUM
     final_hoods = {}
