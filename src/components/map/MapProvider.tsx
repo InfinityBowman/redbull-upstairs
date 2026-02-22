@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import Map from 'react-map-gl/mapbox'
+import Map, { NavigationControl, GeolocateControl } from 'react-map-gl/mapbox'
 import type { ReactNode } from 'react'
 import type { MapRef } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -51,6 +51,12 @@ export function MapProvider({
         logoPosition="bottom-left"
         // pixelRatio={typeof window !== 'undefined' ? window.devicePixelRatio : 1}
       >
+        <NavigationControl position="top-right" showCompass={false} />
+        <GeolocateControl
+          position="top-right"
+          trackUserLocation
+          showUserHeading
+        />
         {children}
       </Map>
     </div>

@@ -47,6 +47,37 @@ export const CATEGORY_COLORS = [
   '#fb923c',
 ]
 
+// Crime choropleth scale
+export const CRIME_COLORS = [
+  '#1a1f35',
+  '#4a1942',
+  '#7a1b3a',
+  '#a8332b',
+  '#d4601a',
+  '#f5a623',
+  '#f94144',
+]
+
+// Demographics choropleth scale
+export const DEMO_COLORS = [
+  '#1a1f35',
+  '#1e2d5c',
+  '#234480',
+  '#2b5ea2',
+  '#3b82f6',
+  '#7c3aed',
+  '#a855f7',
+]
+
+// Vacancy triage score swatches
+export const VACANCY_SCORE_ITEMS = [
+  { color: '#1a9641', label: '80–100 High' },
+  { color: '#a6d96a', label: '60–79 Moderate' },
+  { color: '#ffffbf', label: '40–59 Low-Mod' },
+  { color: '#fdae61', label: '20–39 Low' },
+  { color: '#d7191c', label: '0–19 Very Low' },
+]
+
 // Vacancy triage score color
 export function scoreColor(score: number) {
   if (score >= 80) return '#1a9641'

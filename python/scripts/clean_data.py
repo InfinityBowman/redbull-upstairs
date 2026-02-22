@@ -18,6 +18,7 @@ import io
 import json
 import math
 import os
+import re
 import shutil
 import sys
 import zipfile
@@ -686,6 +687,643 @@ def write_grocery_stores() -> None:
     log(f"Wrote {out_path.name} ({len(features)} stores)")
 
 
+# ── 6. Crime Data (SLMPD) ──────────────────────────────────────────────────
+
+def process_crime() -> None:
+    """Process SLMPD crime CSVs from raw data."""
+    crime_dir = RAW_DIR / "crime"
+    if not crime_dir.exists():
+        log("No crime data found in raw/crime/ — skipping")
+        return
+
+    csv_files = list(crime_dir.rglob("*.csv")) + list(crime_dir.rglob("*.CSV"))
+    if not csv_files:
+        log("No CSV files found in raw/crime/ — skipping")
+        return
+
+    log(f"Found {len(csv_files)} crime CSV file(s), parsing...")
+
+    all_rows = []
+    for cf in csv_files:
+        with open(cf, "r", encoding="utf-8-sig", errors="replace") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                all_rows.append(row)
+
+    log(f"Total crime rows: {len(all_rows):,}")
+
+    # Identify columns (SLMPD NIBRS format)
+    sample = all_rows[0] if all_rows else {}
+    date_col = next((k for k in sample if k.upper() in ("DATEOCCUR", "DATE_OCCUR", "DATEOCCURRED")), None)
+    if not date_col:
+        date_col = next((k for k in sample if "date" in k.lower()), None)
+    crime_col = next((k for k in sample if k.upper() in ("CRIME", "OFFENSE", "NIBRS")), None)
+    if not crime_col:
+        crime_col = next((k for k in sample if "crime" in k.lower() or "offense" in k.lower()), None)
+    desc_col = next((k for k in sample if k.upper() == "DESCRIPTION"), None)
+    if not desc_col:
+        desc_col = next((k for k in sample if "desc" in k.lower()), None)
+    hood_col = next((k for k in sample if k.upper() in ("NEIGHBORHOOD", "NBRHD")), None)
+    if not hood_col:
+        hood_col = next((k for k in sample if "neighborhood" in k.lower()), None)
+    hood_num_col = next((k for k in sample if k.upper() in ("NBHDNUM", "NEIGHBORHOODNUM", "NHD_NUM")), None)
+    if not hood_num_col:
+        hood_num_col = next((k for k in sample if "nbhd" in k.lower() and "num" in k.lower()), None)
+    lat_col = next((k for k in sample if k.upper() in ("XLAT", "LAT", "LATITUDE")), None)
+    lng_col = next((k for k in sample if k.upper() in ("XLON", "LON", "LONGITUDE", "LONG")), None)
+    fel_col = next((k for k in sample if k.upper() in ("FELMISCIT", "CRIME_TYPE")), None)
+    firearm_col = next((k for k in sample if k.upper() in ("FIREARMUSED", "FIREARM")), None)
+    district_col = next((k for k in sample if k.upper() == "DISTRICT"), None)
+
+    log(f"Columns: date={date_col}, crime={crime_col}, hood={hood_col}, hoodNum={hood_num_col}, lat={lat_col}")
+
+    def parse_date(s: str) -> str | None:
+        if not s:
+            return None
+        for fmt in ("%m/%d/%Y %H:%M", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(s.strip(), fmt).strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+        return None
+
+    def parse_datetime(s: str) -> datetime | None:
+        if not s:
+            return None
+        for fmt in ("%m/%d/%Y %H:%M", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(s.strip(), fmt)
+            except ValueError:
+                continue
+        return None
+
+    # Filter to target year
+    year_rows = []
+    for row in all_rows:
+        d = parse_date(row.get(date_col, "")) if date_col else None
+        if d and d.startswith(str(YEAR)):
+            year_rows.append(row)
+
+    log(f"Crime rows for {YEAR}: {len(year_rows):,}")
+
+    if not year_rows:
+        log(f"WARNING: No crime rows for year {YEAR}. Using all data.")
+        year_rows = all_rows
+
+    # Aggregations
+    categories = Counter()
+    daily_counts = Counter()
+    hourly = Counter()
+    weekday_counts = Counter()
+    monthly = defaultdict(Counter)
+    neighborhoods = defaultdict(lambda: {
+        "name": "", "total": 0, "topOffenses": Counter(),
+        "felonies": 0, "firearmIncidents": 0,
+    })
+    heatmap_points = []
+    total_felonies = 0
+    total_firearms = 0
+
+    for row in year_rows:
+        # Use description if available, else crime code
+        offense = ""
+        if desc_col:
+            offense = (row.get(desc_col, "") or "").strip()
+        if not offense and crime_col:
+            offense = (row.get(crime_col, "") or "").strip()
+        offense = offense or "Unknown"
+        categories[offense] += 1
+
+        date_str = parse_date(row.get(date_col, "")) if date_col else None
+        if date_str:
+            daily_counts[date_str] += 1
+            month_key = date_str[:7]
+            monthly[month_key][offense] += 1
+
+        dt = parse_datetime(row.get(date_col, "")) if date_col else None
+        if dt:
+            hourly[str(dt.hour)] += 1
+            weekday_counts[str(dt.weekday())] += 1
+
+        # Felony / firearm tracking
+        is_felony = False
+        if fel_col:
+            fel_val = (row.get(fel_col, "") or "").strip().upper()
+            is_felony = fel_val.startswith("FEL")
+            if is_felony:
+                total_felonies += 1
+
+        has_firearm = False
+        if firearm_col:
+            fa_val = (row.get(firearm_col, "") or "").strip().upper()
+            has_firearm = fa_val in ("Y", "YES", "TRUE", "1")
+            if has_firearm:
+                total_firearms += 1
+
+        # Neighborhood
+        hood_name = (row.get(hood_col, "") if hood_col else "").strip()
+        hood_num = (row.get(hood_num_col, "") if hood_num_col else "").strip()
+        hood_key = hood_num if hood_num else hood_name
+        if hood_key:
+            nb = neighborhoods[hood_key]
+            nb["name"] = hood_name or hood_key
+            nb["total"] += 1
+            nb["topOffenses"][offense] += 1
+            if is_felony:
+                nb["felonies"] += 1
+            if has_firearm:
+                nb["firearmIncidents"] += 1
+
+        # Heatmap point
+        lat, lng = None, None
+        if lat_col and lng_col:
+            try:
+                lat = float(row.get(lat_col, ""))
+                lng = float(row.get(lng_col, ""))
+            except (ValueError, TypeError):
+                pass
+        if lat is not None and lng is not None:
+            if 38.0 < lat < 39.0 and -91.0 < lng < -89.0:
+                heatmap_points.append([lat, lng, offense])
+
+    # Finalize neighborhoods — key by zero-padded NHD_NUM
+    final_hoods = {}
+    for key, nb in neighborhoods.items():
+        # Try to use the hood_num as key, zero-padded
+        try:
+            nhd_id = str(int(key)).zfill(2)
+        except (ValueError, TypeError):
+            # If key is a name, use a hash-based assignment
+            nhd_id = key
+        final_hoods[nhd_id] = {
+            "name": nb["name"],
+            "total": nb["total"],
+            "topOffenses": dict(nb["topOffenses"].most_common(5)),
+            "felonies": nb["felonies"],
+            "firearmIncidents": nb["firearmIncidents"],
+        }
+
+    monthly_out = {}
+    for month_key, cats in sorted(monthly.items()):
+        monthly_out[month_key] = dict(cats.most_common(10))
+
+    crime_data = {
+        "year": YEAR,
+        "totalIncidents": sum(categories.values()),
+        "totalFelonies": total_felonies,
+        "totalFirearms": total_firearms,
+        "categories": dict(categories.most_common()),
+        "neighborhoods": final_hoods,
+        "dailyCounts": dict(sorted(daily_counts.items())),
+        "hourly": dict(sorted(hourly.items(), key=lambda x: int(x[0]))),
+        "weekday": dict(sorted(weekday_counts.items(), key=lambda x: int(x[0]))),
+        "monthly": monthly_out,
+        "heatmapPoints": heatmap_points[:50000],
+    }
+
+    out_path = OUT_DIR / "crime.json"
+    with open(out_path, "w") as f:
+        json.dump(crime_data, f, separators=(",", ":"))
+    log(f"Wrote {out_path.name} ({out_path.stat().st_size // 1024}KB)")
+
+
+# ── 7. ARPA Fund Expenditures ──────────────────────────────────────────────
+
+def process_arpa() -> None:
+    """Process ARPA expenditures JSON into frontend-ready format."""
+    arpa_path = RAW_DIR / "arpa.json"
+    if not arpa_path.exists():
+        log("No ARPA data found — skipping")
+        return
+
+    with open(arpa_path, "r") as f:
+        raw = json.load(f)
+
+    # Handle both array and object responses
+    records = raw if isinstance(raw, list) else raw.get("data", raw.get("DATA", []))
+    if not isinstance(records, list):
+        log("Unexpected ARPA data format — skipping")
+        return
+
+    log(f"Processing {len(records)} ARPA transactions...")
+
+    # Category keywords for classification
+    CATEGORY_KEYWORDS = {
+        "Health": ["health", "covid", "vaccine", "medical", "hospital", "clinic"],
+        "Public Safety": ["police", "fire", "safety", "enforcement", "security"],
+        "Infrastructure": ["infrastructure", "water", "sewer", "road", "bridge", "building"],
+        "Housing": ["housing", "rent", "mortgage", "homeless", "shelter"],
+        "Economic Recovery": ["business", "economic", "workforce", "employment", "job"],
+        "Community": ["community", "youth", "education", "park", "recreation"],
+        "Technology": ["technology", "broadband", "internet", "digital"],
+    }
+
+    def categorize(title: str) -> str:
+        title_lower = title.lower()
+        for cat, keywords in CATEGORY_KEYWORDS.items():
+            if any(kw in title_lower for kw in keywords):
+                return cat
+        return "Other"
+
+    # Parse transactions
+    project_totals = defaultdict(lambda: {"title": "", "totalSpent": 0, "category": ""})
+    vendor_totals = Counter()
+    monthly_spending = Counter()
+    total_spent = 0
+
+    for rec in records:
+        # Try various field name formats
+        amount = safe_float(rec.get("AMOUNT", rec.get("amount", 0)))
+        title = str(rec.get("PROJECTTITLE", rec.get("projecttitle", rec.get("PROJECT_TITLE", "")))).strip()
+        project_id = str(rec.get("PROJECTID", rec.get("projectid", rec.get("PROJECT_ID", 0))))
+        vendor = str(rec.get("VENDOR", rec.get("vendor", ""))).strip()
+        date_str = str(rec.get("DATE", rec.get("date", rec.get("EXPENDITURE_DATE", "")))).strip()
+
+        total_spent += amount
+
+        # Project aggregation
+        p = project_totals[project_id]
+        p["title"] = title or p["title"]
+        p["totalSpent"] += amount
+        p["category"] = categorize(p["title"])
+
+        # Vendor
+        if vendor:
+            vendor_totals[vendor] += amount
+
+        # Monthly
+        if date_str:
+            for fmt in ("%m/%d/%Y %H:%M", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+                try:
+                    dt = datetime.strptime(date_str, fmt)
+                    month_key = dt.strftime("%Y-%m")
+                    monthly_spending[month_key] += amount
+                    break
+                except ValueError:
+                    continue
+
+    # Build projects list
+    projects = []
+    for pid, p in project_totals.items():
+        try:
+            pid_int = int(pid)
+        except (ValueError, TypeError):
+            pid_int = 0
+        projects.append({
+            "id": pid_int,
+            "title": p["title"],
+            "totalSpent": round(p["totalSpent"], 2),
+            "category": p["category"],
+        })
+    projects.sort(key=lambda x: -x["totalSpent"])
+
+    # Top vendors
+    top_vendors = [
+        {"name": name, "totalSpent": round(amount, 2)}
+        for name, amount in vendor_totals.most_common(20)
+    ]
+
+    # Category breakdown
+    cat_breakdown = Counter()
+    for p in projects:
+        cat_breakdown[p["category"]] += p["totalSpent"]
+    category_breakdown = {k: round(v, 2) for k, v in cat_breakdown.most_common()}
+
+    # Monthly + cumulative spending
+    monthly_sorted = dict(sorted(monthly_spending.items()))
+    cumulative = {}
+    running = 0
+    for k, v in monthly_sorted.items():
+        running += v
+        cumulative[k] = round(running, 2)
+    monthly_sorted = {k: round(v, 2) for k, v in monthly_sorted.items()}
+
+    arpa_data = {
+        "totalSpent": round(total_spent, 2),
+        "transactionCount": len(records),
+        "projects": projects[:100],  # Top 100 projects
+        "monthlySpending": monthly_sorted,
+        "cumulativeSpending": cumulative,
+        "topVendors": top_vendors,
+        "categoryBreakdown": category_breakdown,
+    }
+
+    out_path = OUT_DIR / "arpa.json"
+    with open(out_path, "w") as f:
+        json.dump(arpa_data, f, separators=(",", ":"))
+    log(f"Wrote {out_path.name} ({out_path.stat().st_size // 1024}KB)")
+
+
+# ── 8. Census Demographics ──────────────────────────────────────────────────
+
+def process_demographics() -> None:
+    """Process scraped neighborhood census data into demographics JSON.
+
+    The scraped text has a line-by-line table format where the value
+    appears on the line AFTER the label:
+
+        Total Population
+        7,734
+        White alone
+        3,334
+    """
+    demo_path = RAW_DIR / "demographics.json"
+    if not demo_path.exists():
+        log("No demographics data found — skipping")
+        return
+
+    with open(demo_path, "r") as f:
+        raw = json.load(f)
+
+    log(f"Processing demographics for {len(raw)} neighborhoods...")
+
+    def parse_int(s: str) -> int:
+        """Parse a comma-formatted integer string."""
+        try:
+            return int(s.strip().replace(",", ""))
+        except (ValueError, TypeError):
+            return 0
+
+    def build_line_map(text: str) -> dict[str, int]:
+        """Build label→value map from consecutive line pairs.
+
+        Scans for lines where the next non-empty line is a number.
+        """
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        result: dict[str, int] = {}
+        for i in range(len(lines) - 1):
+            label = lines[i]
+            next_line = lines[i + 1]
+            # Next line must look like a number (digits, commas, optional negative)
+            if re.match(r"^-?[\d,]+$", next_line):
+                result[label.lower()] = parse_int(next_line)
+        return result
+
+    demographics = {}
+    for nhd_id, page_data in raw.items():
+        name = page_data.get("name", f"Neighborhood {nhd_id}")
+        # Strip " Census Data" suffix from name
+        name = re.sub(r"\s*Census Data\s*$", "", name, flags=re.IGNORECASE).strip()
+        text = page_data.get("text", "")
+
+        lm = build_line_map(text)
+
+        # Population
+        pop_2020 = lm.get("total population", 0)
+
+        # Race (use "alone" variants from the total population section)
+        white = lm.get("white alone", 0)
+        black = lm.get("black or african-american alone", 0)
+        asian = lm.get("asian-american alone", 0) or lm.get("asian alone", 0)
+        hispanic = lm.get("hispanic or latino", 0)
+        other = lm.get("some other race alone", 0) + lm.get("two or more races", 0)
+
+        # Housing
+        total_units = lm.get("total housing units", 0)
+        occupied = lm.get("occupied housing units", 0)
+        vacant = lm.get("vacant housing units", 0)
+
+        vacancy_rate = round(vacant / total_units * 100, 1) if total_units > 0 else 0
+
+        # For 2010 population and pop change, scrape would need the 2010 page.
+        # Use a rough estimate: if page was fetched for 2020, we only have 2020 data.
+        # Set 2010 to 0 (unknown) rather than a wrong number.
+        demographics[nhd_id] = {
+            "name": name,
+            "population": {
+                "2020": pop_2020,
+                "2010": 0,
+                "2000": 0,
+            },
+            "race": {
+                "white": white,
+                "black": black,
+                "asian": asian,
+                "hispanic": hispanic,
+                "other": other,
+            },
+            "housing": {
+                "totalUnits": total_units,
+                "occupied": occupied,
+                "vacant": vacant,
+                "vacancyRate": vacancy_rate,
+                "ownerOccupied": 0,
+                "renterOccupied": 0,
+            },
+            "popChange10to20": 0,
+        }
+
+    out_path = OUT_DIR / "demographics.json"
+    with open(out_path, "w") as f:
+        json.dump(demographics, f, separators=(",", ":"))
+    log(f"Wrote {out_path.name} ({len(demographics)} neighborhoods, {out_path.stat().st_size // 1024}KB)")
+
+
+# ── 9. Real Vacancy Data ───────────────────────────────────────────────────
+
+def process_vacancies() -> None:
+    """Join vacancy API overview with parcel shapefile to produce vacancies.json.
+
+    Data sources:
+    - raw/vacancies/vacancy_overview.json — from stlcitypermits.com API (keyed by HANDLE)
+    - raw/parcels/PARCELS/PARCELS.shp — city parcel shapefile (has geometry, address, owner, etc.)
+
+    The vacancy overview provides: minor violations, major violations, CSB complaints, unpaid fines.
+    The parcel shapefile provides: address, owner, lat/lng (via centroid), neighborhood, lot size, etc.
+    We join on HANDLE and compute triage scores from real data.
+    """
+    import geopandas as gpd
+
+    vacancy_dir = RAW_DIR / "vacancies"
+    overview_path = vacancy_dir / "vacancy_overview.json"
+    if not overview_path.exists():
+        log("No vacancy_overview.json found — skipping (run fetch_raw.py first)")
+        return
+
+    parcel_dir = RAW_DIR / "parcels"
+    shp_files = list(parcel_dir.rglob("*.shp")) if parcel_dir.exists() else []
+    if not shp_files:
+        log("No parcel shapefile found — skipping (run fetch_raw.py first)")
+        return
+
+    # Load vacancy overview (HANDLE -> {mo, vmin, vmaj, csb, unpd})
+    with open(overview_path, "r") as f:
+        vacancy_overview = json.load(f)
+    log(f"Loaded {len(vacancy_overview)} vacant parcels from API")
+
+    # Load parcel shapefile and reproject to WGS84
+    log(f"Reading parcel shapefile ({shp_files[0].name})...")
+    gdf = gpd.read_file(shp_files[0])
+    if gdf.crs and gdf.crs != "EPSG:4326":
+        log(f"Reprojecting from {gdf.crs} to EPSG:4326...")
+        gdf = gdf.to_crs(epsg=4326)
+
+    # Index parcels by HANDLE for fast lookup
+    parcel_lookup = {}
+    for _, row in gdf.iterrows():
+        handle = str(row.get("HANDLE", "")).strip()
+        if handle:
+            parcel_lookup[handle] = row
+    log(f"Indexed {len(parcel_lookup)} parcels by HANDLE")
+
+    # Triage score weights (mirrors scoring.ts)
+    WEIGHTS = {
+        "condition": 0.25,
+        "complaintDensity": 0.2,
+        "lotSize": 0.1,
+        "ownership": 0.15,
+        "proximity": 0.15,
+        "taxDelinquency": 0.15,
+    }
+
+    properties = []
+    matched = 0
+    for handle, vdata in vacancy_overview.items():
+        parcel = parcel_lookup.get(handle)
+        if parcel is None:
+            continue
+        matched += 1
+
+        # Extract centroid lat/lng from geometry
+        geom = parcel.get("geometry")
+        if geom is None or geom.is_empty:
+            continue
+        centroid = geom.centroid
+        lat = round(centroid.y, 6)
+        lng = round(centroid.x, 6)
+        if not (38.0 < lat < 39.0 and -91.0 < lng < -89.0):
+            continue
+
+        # Parcel fields
+        address = str(parcel.get("SITEADDR", "")).strip()
+        if not address:
+            address = f"{parcel.get('LowAddrNum', '')} {parcel.get('StName', '')} {parcel.get('StType', '')}".strip()
+        owner_raw = str(parcel.get("OWNERNAME", "")).strip().upper()
+        ward = safe_int(parcel.get("WARD", 0))
+        nbrhd = safe_int(parcel.get("NBRHD", 0))
+        neighborhood = str(nbrhd).zfill(2) if nbrhd > 0 else ""
+        zip_code = str(safe_int(parcel.get("ZIP", 0)))
+        lot_sqft = safe_int(parcel.get("SQFT", 0)) or 3000
+        zoning = str(parcel.get("Zoning", "B")).strip() or "B"
+        assessed_value = safe_float(parcel.get("AsdTotal", 0))
+        tax_balance = safe_float(parcel.get("TaxBalance", 0))
+        year_built = safe_int(parcel.get("FirstYearB", 0)) or None
+        num_bldgs = safe_int(parcel.get("NbrOfBldgs", 0))
+        vacant_lot = safe_int(parcel.get("VacantLot", 0))
+        parcel_id = str(parcel.get("ParcelId", handle)).strip()
+
+        # Determine owner type
+        if "LRA" in owner_raw or "LAND REUTILIZATION" in owner_raw:
+            owner = "LRA"
+        elif "CITY" in owner_raw or "ST. LOUIS" in owner_raw or "SAINT LOUIS" in owner_raw:
+            owner = "CITY"
+        else:
+            owner = "PRIVATE"
+
+        property_type = "lot" if (vacant_lot == 1 or num_bldgs == 0) else "building"
+
+        # Violation data from API
+        minor_violations = safe_int(vdata.get("vmin", 0))
+        major_violations = safe_int(vdata.get("vmaj", 0))
+        csb_complaints = safe_int(vdata.get("csb", 0))
+        unpaid_fines = safe_float(vdata.get("unpd", 0))
+        total_violations = minor_violations + major_violations
+
+        # Derive condition rating (1=worst, 5=best) from violations
+        if major_violations >= 10:
+            condition = 1
+        elif major_violations >= 5:
+            condition = 2
+        elif major_violations >= 2 or total_violations >= 8:
+            condition = 3
+        elif total_violations >= 1:
+            condition = 4
+        else:
+            condition = 5
+
+        # Estimate tax delinquency from balance
+        est_annual_tax = max(assessed_value * 0.08, 500) if assessed_value > 0 else 500
+        tax_years = min(10, round(tax_balance / est_annual_tax)) if tax_balance > 0 else 0
+
+        # Proximity score: use CSB complaints as a proxy for neighborhood activity
+        proximity = min(100, 30 + csb_complaints * 15)
+        complaints_nearby = csb_complaints
+
+        # Score breakdown (mirrors scoring.ts)
+        scores = {}
+        scores["condition"] = round(((5 - condition) / 4) * 100)
+        scores["complaintDensity"] = min(100, round((total_violations / 20) * 100))
+        scores["lotSize"] = round(min(lot_sqft / 10000, 1) * 100)
+        if owner == "LRA":
+            scores["ownership"] = 100
+        elif owner == "CITY":
+            scores["ownership"] = 70
+        else:
+            scores["ownership"] = min(100, round((tax_years / 5) * 50))
+        scores["proximity"] = proximity
+        scores["taxDelinquency"] = min(100, round((tax_years / 10) * 100))
+
+        composite = round(
+            scores["condition"] * WEIGHTS["condition"]
+            + scores["complaintDensity"] * WEIGHTS["complaintDensity"]
+            + scores["lotSize"] * WEIGHTS["lotSize"]
+            + scores["ownership"] * WEIGHTS["ownership"]
+            + scores["proximity"] * WEIGHTS["proximity"]
+            + scores["taxDelinquency"] * WEIGHTS["taxDelinquency"]
+        )
+        triage_score = min(100, max(0, composite))
+
+        # Best use determination
+        housing_fit = (35 if property_type == "building" else 0) + condition * 8 + (proximity / 100) * 25
+        solar_fit = (30 if property_type == "lot" else 0) + min(40, (lot_sqft / 15000) * 40) + (15 if owner == "LRA" else 0)
+        garden_fit = (25 if property_type == "lot" else 0) + (30 if 2000 <= lot_sqft <= 8000 else 15) + (proximity / 100) * 25
+        best = max(housing_fit, solar_fit, garden_fit)
+        if best == housing_fit:
+            best_use = "housing"
+        elif best == solar_fit:
+            best_use = "solar"
+        else:
+            best_use = "garden"
+
+        properties.append({
+            "id": matched,
+            "parcelId": parcel_id,
+            "address": address,
+            "zip": zip_code,
+            "lat": lat,
+            "lng": lng,
+            "ward": ward,
+            "neighborhood": neighborhood,
+            "propertyType": property_type,
+            "owner": owner,
+            "conditionRating": condition,
+            "lotSqFt": lot_sqft,
+            "zoning": zoning,
+            "taxYearsDelinquent": tax_years,
+            "complaintsNearby": complaints_nearby,
+            "proximityScore": proximity,
+            "neighborhoodDemand": 50,
+            "boardUpStatus": "Unknown",
+            "violationCount": total_violations,
+            "condemned": major_violations >= 10,
+            "assessedValue": assessed_value,
+            "yearBuilt": year_built,
+            "stories": 1,
+            "recentComplaints": [],
+            "vacancyCategory": "Vacant Building",
+            "triageScore": triage_score,
+            "scoreBreakdown": scores,
+            "bestUse": best_use,
+        })
+
+    log(f"Matched {matched} of {len(vacancy_overview)} vacant parcels to parcel shapefile")
+
+    out_path = OUT_DIR / "vacancies.json"
+    with open(out_path, "w") as f:
+        json.dump(properties, f, separators=(",", ":"))
+    log(f"Wrote {out_path.name} ({len(properties)} properties, {out_path.stat().st_size // 1024}KB)")
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -707,6 +1345,10 @@ def main():
         ("Food deserts", process_food_deserts),
         ("Grocery stores", write_grocery_stores),
         ("CSB 311 data", process_csb),
+        ("Crime data", process_crime),
+        ("ARPA funds", process_arpa),
+        ("Demographics", process_demographics),
+        ("Vacancy data", process_vacancies),
     ]
 
     for name, fn in steps:
@@ -716,7 +1358,7 @@ def main():
         except SystemExit:
             raise
         except Exception as e:
-            print(f"\n❌ {name} failed: {e}")
+            print(f"\n\u274c {name} failed: {e}")
 
     # Summary
     print("\n" + "=" * 60)

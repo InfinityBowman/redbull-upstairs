@@ -1,11 +1,25 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useData, useExplorer } from './ExplorerProvider'
 import { NeighborhoodBaseLayer } from './layers/NeighborhoodBaseLayer'
 import { ComplaintsLayer } from './layers/ComplaintsLayer'
 import { TransitLayer } from './layers/TransitLayer'
 import { VacancyLayer } from './layers/VacancyLayer'
 import { FoodAccessLayer } from './layers/FoodAccessLayer'
+import { CrimeLayer } from './layers/CrimeLayer'
+import { DemographicsLayer } from './layers/DemographicsLayer'
 import { MapProvider } from '@/components/map/MapProvider'
+import {
+  MapLegend,
+  GradientSection,
+  SwatchSection,
+  SymbolSection,
+} from '@/components/map/MapLegend'
+import {
+  CHORO_COLORS,
+  CRIME_COLORS,
+  DEMO_COLORS,
+  VACANCY_SCORE_ITEMS,
+} from '@/lib/colors'
 
 export function ExplorerMap() {
   const { state, dispatch } = useExplorer()
@@ -77,7 +91,7 @@ export function ExplorerMap() {
           }
         }
 
-        // 5. Neighborhood polygons
+        // 5. Neighborhood polygons (also catches crime/demographics choropleth clicks)
         const hoodFeatures = map
           .queryRenderedFeatures(point, { layers: ['neighborhood-base-fill'] })
           .filter(Boolean)
@@ -118,13 +132,120 @@ export function ExplorerMap() {
     [dispatch],
   )
 
+  const complaintsTitle = useMemo(() => {
+    if (!state.layers.complaints) return ''
+    const { complaintsMode, complaintsCategory } = state.subToggles
+    if (complaintsMode === 'heatmap') return 'Complaint Density'
+    return complaintsCategory === 'all' ? '311 Complaints' : complaintsCategory
+  }, [state.layers.complaints, state.subToggles])
+
+  const crimeTitle = useMemo(() => {
+    if (!state.layers.crime) return ''
+    const { crimeMode, crimeCategory } = state.subToggles
+    if (crimeMode === 'heatmap') return 'Crime Density'
+    return crimeCategory === 'all' ? 'Crime Incidents' : crimeCategory
+  }, [state.layers.crime, state.subToggles])
+
+  const demoTitle = useMemo(() => {
+    if (!state.layers.demographics) return ''
+    const titles: Record<string, string> = {
+      population: 'Population (2020)',
+      vacancyRate: 'Vacancy Rate %',
+      popChange: 'Pop Change %',
+    }
+    return titles[state.subToggles.demographicsMetric] ?? 'Demographics'
+  }, [state.layers.demographics, state.subToggles.demographicsMetric])
+
+  const hasLegend =
+    state.layers.complaints ||
+    state.layers.crime ||
+    state.layers.demographics ||
+    state.layers.vacancy ||
+    state.layers.foodAccess ||
+    state.layers.transit
+
   return (
     <MapProvider className="h-full w-full" onMapLoad={handleMapLoad}>
       {data.neighborhoods && <NeighborhoodBaseLayer />}
       {state.layers.complaints && <ComplaintsLayer />}
+      {state.layers.crime && <CrimeLayer />}
       {state.layers.transit && <TransitLayer />}
       {state.layers.vacancy && <VacancyLayer />}
       {state.layers.foodAccess && <FoodAccessLayer />}
+      {state.layers.demographics && <DemographicsLayer />}
+
+      {hasLegend && (
+        <MapLegend>
+          {state.layers.complaints && (
+            <GradientSection title={complaintsTitle} colors={CHORO_COLORS} />
+          )}
+          {state.layers.crime && (
+            <GradientSection title={crimeTitle} colors={CRIME_COLORS} />
+          )}
+          {state.layers.demographics && (
+            <GradientSection title={demoTitle} colors={DEMO_COLORS} />
+          )}
+          {state.layers.vacancy && (
+            <>
+              <SwatchSection title="Vacancy Triage" items={VACANCY_SCORE_ITEMS} />
+              <SymbolSection
+                title="Type"
+                items={[
+                  {
+                    node: (
+                      <span className="inline-block h-3 w-3 rounded-full border border-black/15 bg-muted-foreground/50" />
+                    ),
+                    label: 'Building',
+                  },
+                  {
+                    node: (
+                      <span className="inline-block h-2 w-2 rounded-full border border-black/15 bg-muted-foreground/50" />
+                    ),
+                    label: 'Lot',
+                  },
+                ]}
+              />
+            </>
+          )}
+          {state.layers.foodAccess && (
+            <SwatchSection
+              title="Food Access"
+              items={[
+                { color: '#ef4444', label: 'LILA Tract' },
+                { color: '#059669', label: 'Grocery Store' },
+              ]}
+            />
+          )}
+          {state.layers.transit && (
+            <>
+              <SwatchSection
+                title="Transit"
+                items={[
+                  { color: '#60a5fa', label: 'Stops' },
+                  { color: '#a78bfa', label: 'Routes' },
+                ]}
+              />
+              <SymbolSection
+                title="Stop Activity"
+                items={[
+                  {
+                    node: (
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-400" />
+                    ),
+                    label: 'Few',
+                  },
+                  {
+                    node: (
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-400" />
+                    ),
+                    label: 'Many',
+                  },
+                ]}
+              />
+            </>
+          )}
+        </MapLegend>
+      )}
     </MapProvider>
   )
 }

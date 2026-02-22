@@ -1,14 +1,13 @@
 import {
-  
   createContext,
   useCallback,
   useContext,
   useEffect,
   useReducer,
   useRef,
-  useState
+  useState,
 } from 'react'
-import type {ReactNode} from 'react';
+import type { ReactNode } from 'react'
 import type {
   ExplorerAction,
   ExplorerData,
@@ -94,6 +93,9 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
     stopStats: null,
     foodDeserts: null,
     vacancyData: null,
+    crimeData: null,
+    arpaData: null,
+    demographicsData: null,
   })
 
   // Track which datasets have been fetched to avoid double-fetch
@@ -138,7 +140,21 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
         break
 
       case 'vacancy':
-        setData((prev) => ({ ...prev, vacancyData: generateVacancyData() }))
+        // Try to load real vacancy data; fall back to mock generator
+        fetch('/data/vacancies.json')
+          .then((r) => {
+            if (!r.ok) throw new Error('not found')
+            return r.json()
+          })
+          .then((vacancyData) => {
+            setData((prev) => ({ ...prev, vacancyData }))
+          })
+          .catch(() => {
+            setData((prev) => ({
+              ...prev,
+              vacancyData: generateVacancyData(),
+            }))
+          })
         break
 
       case 'foodAccess':
@@ -148,14 +164,58 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
             setData((prev) => ({ ...prev, foodDeserts }))
           })
         break
+
+      case 'crime':
+        fetch('/data/crime.json')
+          .then((r) => {
+            if (!r.ok) throw new Error('not found')
+            return r.json()
+          })
+          .then((crimeData) => {
+            setData((prev) => ({ ...prev, crimeData }))
+          })
+          .catch(() => {
+            // Crime data may not exist yet
+          })
+        break
+
+      case 'arpa':
+        fetch('/data/arpa.json')
+          .then((r) => {
+            if (!r.ok) throw new Error('not found')
+            return r.json()
+          })
+          .then((arpaData) => {
+            setData((prev) => ({ ...prev, arpaData }))
+          })
+          .catch(() => {
+            // ARPA data may not exist yet
+          })
+        break
+
+      case 'demographics':
+        fetch('/data/demographics.json')
+          .then((r) => {
+            if (!r.ok) throw new Error('not found')
+            return r.json()
+          })
+          .then((demographicsData) => {
+            setData((prev) => ({ ...prev, demographicsData }))
+          })
+          .catch(() => {
+            // Demographics data may not exist yet
+          })
+        break
     }
   }, [])
 
   // Trigger lazy loads when layers are toggled on
   useEffect(() => {
-    ;(Object.keys(state.layers) as Array<keyof LayerToggles>).forEach((layer) => {
-      if (state.layers[layer]) loadLayerData(layer)
-    })
+    ;(Object.keys(state.layers) as Array<keyof LayerToggles>).forEach(
+      (layer) => {
+        if (state.layers[layer]) loadLayerData(layer)
+      },
+    )
     // Transit analytics needs food desert data for equity gap scoring
     if (state.layers.transit) loadLayerData('foodAccess')
   }, [state.layers, loadLayerData])
@@ -168,6 +228,8 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
       loadLayerData('transit')
       loadLayerData('vacancy')
       loadLayerData('foodAccess')
+      loadLayerData('crime')
+      loadLayerData('demographics')
     }
   }, [state.selected, loadLayerData])
 

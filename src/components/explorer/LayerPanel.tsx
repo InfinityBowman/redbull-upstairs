@@ -16,6 +16,12 @@ const LAYER_CONFIG: Array<{
     desc: 'Complaint density by neighborhood',
   },
   {
+    key: 'crime',
+    label: 'Crime',
+    color: '#f97316',
+    desc: 'SLMPD crime incidents',
+  },
+  {
     key: 'transit',
     label: 'Transit',
     color: '#60a5fa',
@@ -33,11 +39,22 @@ const LAYER_CONFIG: Array<{
     color: '#ef4444',
     desc: 'Food desert tracts and grocery stores',
   },
+  {
+    key: 'demographics',
+    label: 'Demographics',
+    color: '#a855f7',
+    desc: 'Census population and housing data',
+  },
+  {
+    key: 'arpa',
+    label: 'ARPA Funds',
+    color: '#10b981',
+    desc: 'Federal relief spending analytics',
+  },
 ]
 
 export function LayerPanel() {
   const { state, dispatch } = useExplorer()
-  const data = useData()
 
   return (
     <div className="flex flex-col gap-0.5 p-3">
@@ -96,7 +113,10 @@ function LayerContent({ layerKey }: { layerKey: keyof LayerToggles }) {
     (layerKey === 'complaints' && !data.csbData) ||
     (layerKey === 'transit' && !data.stops) ||
     (layerKey === 'vacancy' && !data.vacancyData) ||
-    (layerKey === 'foodAccess' && !data.foodDeserts)
+    (layerKey === 'foodAccess' && !data.foodDeserts) ||
+    (layerKey === 'crime' && !data.crimeData) ||
+    (layerKey === 'arpa' && !data.arpaData) ||
+    (layerKey === 'demographics' && !data.demographicsData)
 
   if (isLoading) return <LoadingIndicator />
 
@@ -109,6 +129,12 @@ function LayerContent({ layerKey }: { layerKey: keyof LayerToggles }) {
       return <VacancyFilters />
     case 'foodAccess':
       return <FoodAccessFilters />
+    case 'crime':
+      return <CrimeFilters />
+    case 'demographics':
+      return <DemographicsFilters />
+    case 'arpa':
+      return <ArpaFilters />
   }
 }
 
@@ -191,10 +217,93 @@ function ComplaintsFilters() {
   )
 }
 
+function CrimeFilters() {
+  const { state, dispatch } = useExplorer()
+  const data = useData()
+
+  const topCategories = useMemo(() => {
+    if (!data.crimeData) return []
+    return Object.entries(data.crimeData.categories)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([cat]) => cat)
+  }, [data.crimeData])
+
+  return (
+    <>
+      <div className="flex gap-1">
+        {(['choropleth', 'heatmap'] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() =>
+              dispatch({
+                type: 'SET_SUB_TOGGLE',
+                key: 'crimeMode',
+                value: mode,
+              })
+            }
+            className={cn(
+              'rounded px-2 py-0.5 text-[0.65rem] font-medium transition-colors',
+              state.subToggles.crimeMode === mode
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-accent',
+            )}
+          >
+            {mode === 'choropleth' ? 'Choropleth' : 'Heatmap'}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        <button
+          onClick={() =>
+            dispatch({
+              type: 'SET_SUB_TOGGLE',
+              key: 'crimeCategory',
+              value: 'all',
+            })
+          }
+          className={cn(
+            'rounded px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors',
+            state.subToggles.crimeCategory === 'all'
+              ? 'bg-orange-500/20 text-orange-400'
+              : 'bg-muted text-muted-foreground hover:bg-accent',
+          )}
+        >
+          All
+        </button>
+        {topCategories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() =>
+              dispatch({
+                type: 'SET_SUB_TOGGLE',
+                key: 'crimeCategory',
+                value: cat,
+              })
+            }
+            className={cn(
+              'rounded px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors',
+              state.subToggles.crimeCategory === cat
+                ? 'bg-orange-500/20 text-orange-400'
+                : 'bg-muted text-muted-foreground hover:bg-accent',
+            )}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function TransitFilters() {
   const { state, dispatch } = useExplorer()
 
-  const toggles: Array<{ key: keyof SubToggles; label: string; color: string }> = [
+  const toggles: Array<{
+    key: keyof SubToggles
+    label: string
+    color: string
+  }> = [
     { key: 'transitStops', label: 'Stops', color: '#60a5fa' },
     { key: 'transitRoutes', label: 'Routes', color: '#a78bfa' },
     {
@@ -374,5 +483,51 @@ function FoodAccessFilters() {
         <span className="text-muted-foreground">Grocery Stores</span>
       </label>
     </>
+  )
+}
+
+function DemographicsFilters() {
+  const { state, dispatch } = useExplorer()
+
+  const metrics: Array<{
+    value: string
+    label: string
+  }> = [
+    { value: 'population', label: 'Population' },
+    { value: 'vacancyRate', label: 'Vacancy Rate' },
+    { value: 'popChange', label: 'Pop Change' },
+  ]
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {metrics.map((m) => (
+        <button
+          key={m.value}
+          onClick={() =>
+            dispatch({
+              type: 'SET_SUB_TOGGLE',
+              key: 'demographicsMetric',
+              value: m.value,
+            })
+          }
+          className={cn(
+            'rounded px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors',
+            state.subToggles.demographicsMetric === m.value
+              ? 'bg-purple-500/20 text-purple-400'
+              : 'bg-muted text-muted-foreground hover:bg-accent',
+          )}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function ArpaFilters() {
+  return (
+    <div className="text-[0.6rem] text-muted-foreground">
+      Analytics-only layer (no map visualization)
+    </div>
   )
 }

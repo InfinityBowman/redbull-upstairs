@@ -10,7 +10,11 @@
     "lint": "eslint",
     "format": "prettier",
     "check": "prettier --write . && eslint --fix",
-    "deploy": "vite build && wrangler deploy"
+    "deploy": "vite build && wrangler deploy",
+    "data:fetch": "cd python && uv run python scripts/fetch_raw.py",
+    "data:clean": "cd python && uv run python scripts/clean_data.py",
+    "data:sync": "cd python && uv sync",
+    "data:pipeline": "cd python && uv sync && uv run python scripts/fetch_raw.py && uv run python scripts/clean_data.py"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",

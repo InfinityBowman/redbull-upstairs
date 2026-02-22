@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useData } from '../ExplorerProvider'
 import { haversine, polygonCentroid } from '@/lib/equity'
-import { generateVacancyData } from '@/lib/vacancy-data'
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
 import { scoreColor } from '@/lib/colors'
 
@@ -18,15 +17,14 @@ export function NeighborhoodAnalytics({ id }: { id: string }) {
     ? polygonCentroid(hoodFeature.geometry.coordinates as Array<Array<Array<number>>>)
     : [38.635, -90.245]
 
-  const allVacancies = useMemo(() => generateVacancyData(), [])
   const hoodVacancies = useMemo(
     () =>
-      hoodFeature
-        ? allVacancies.filter(
+      hoodFeature && data.vacancyData
+        ? data.vacancyData.filter(
             (p) => haversine(centroid[0], centroid[1], p.lat, p.lng) <= 0.5,
           )
         : [],
-    [allVacancies, hoodFeature, centroid],
+    [data.vacancyData, hoodFeature, centroid],
   )
 
   const nearbyStops = useMemo(() => {

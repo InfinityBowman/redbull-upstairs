@@ -246,9 +246,7 @@ table tbody tr {
 }
 
 /* Remove any remaining Mapbox chrome (compass, etc.) */
-.mapboxgl-ctrl-top-right,
-.mapboxgl-ctrl-top-left,
-.mapboxgl-ctrl-bottom-right {
+.mapboxgl-ctrl-top-left {
   display: none !important;
 }
 

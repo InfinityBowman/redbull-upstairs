@@ -40,65 +40,77 @@ export function ChartControls({
   const xOptions = allFields.filter(
     (f) => f.type === 'category' || f.type === 'date',
   )
-  // If no category/date fields, allow all fields as X
   const xChoices = xOptions.length > 0 ? xOptions : allFields
 
   const availableY = getAvailableYFields(allFields, xAxisField, series)
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* X Axis selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-[0.6rem] font-semibold text-muted-foreground w-5">
-          X
-        </span>
-        <Select value={xAxisField} onValueChange={onSetXAxis}>
-          <SelectTrigger size="sm" className="min-w-[120px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {xChoices.map((f) => (
-              <SelectItem key={f.key} value={f.key}>
-                {f.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {availableY.length > 0 && (
-          <Select
-            key={addKey}
-            onValueChange={(key) => {
-              const field = allFields.find((f) => f.key === key)
-              if (field) {
-                onAddSeries(field)
-                setAddKey((k) => k + 1)
-              }
-            }}
-          >
-            <SelectTrigger size="sm" className="min-w-[100px] text-muted-foreground">
-              <SelectValue placeholder="+ Add Series" />
+    <div className="flex flex-col gap-3">
+      {/* Controls row */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* X Axis */}
+        <div className="flex items-center gap-2">
+          <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">
+            X Axis
+          </span>
+          <Select value={xAxisField} onValueChange={onSetXAxis}>
+            <SelectTrigger size="sm" className="min-w-[130px]">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {availableY.map((f) => (
+              {xChoices.map((f) => (
                 <SelectItem key={f.key} value={f.key}>
                   {f.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Add Series button */}
+        {availableY.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Select
+              key={addKey}
+              onValueChange={(key) => {
+                const field = allFields.find((f) => f.key === key)
+                if (field) {
+                  onAddSeries(field)
+                  setAddKey((k) => k + 1)
+                }
+              }}
+            >
+              <SelectTrigger
+                size="sm"
+                className="min-w-[140px] border-dashed text-muted-foreground hover:border-solid hover:text-foreground"
+              >
+                <SelectValue placeholder="+ Add series" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableY.map((f) => (
+                  <SelectItem key={f.key} value={f.key}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </div>
 
-      {/* Series configs */}
-      {series.map((s) => (
-        <SeriesRow
-          key={s.id}
-          series={s}
-          onUpdate={(changes) => onUpdateSeries(s.id, changes)}
-          onRemove={() => onRemoveSeries(s.id)}
-        />
-      ))}
+      {/* Series list */}
+      {series.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {series.map((s) => (
+            <SeriesRow
+              key={s.id}
+              series={s}
+              onUpdate={(changes) => onUpdateSeries(s.id, changes)}
+              onRemove={() => onRemoveSeries(s.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -113,7 +125,7 @@ function SeriesRow({
   onRemove: () => void
 }) {
   return (
-    <div className="flex items-center gap-2 pl-5">
+    <div className="flex items-center gap-2.5 rounded-md bg-muted/30 px-2.5 py-1.5">
       {/* Color dot */}
       <div
         className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -121,15 +133,17 @@ function SeriesRow({
       />
 
       {/* Field label */}
-      <span className="text-xs min-w-[80px] truncate">{series.label}</span>
+      <span className="min-w-[80px] truncate text-xs font-medium">
+        {series.label}
+      </span>
 
       {/* Chart type toggles */}
-      <div className="flex rounded-md border border-border/60 overflow-hidden">
+      <div className="flex overflow-hidden rounded-md border border-border/60">
         {CHART_TYPES.map((ct) => (
           <button
             key={ct.value}
             onClick={() => onUpdate({ chartType: ct.value })}
-            className={`px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors ${
+            className={`px-2 py-0.5 text-[0.65rem] font-medium transition-colors ${
               series.chartType === ct.value
                 ? 'bg-accent text-accent-foreground'
                 : 'text-muted-foreground hover:bg-accent/30'
@@ -141,35 +155,35 @@ function SeriesRow({
       </div>
 
       {/* Axis side toggle */}
-      <div className="flex rounded-md border border-border/60 overflow-hidden">
+      <div className="flex overflow-hidden rounded-md border border-border/60">
         <button
           onClick={() => onUpdate({ yAxisId: 'left' })}
-          className={`px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors ${
+          className={`px-2 py-0.5 text-[0.65rem] font-medium transition-colors ${
             series.yAxisId === 'left'
               ? 'bg-accent text-accent-foreground'
               : 'text-muted-foreground hover:bg-accent/30'
           }`}
         >
-          L
+          Left
         </button>
         <button
           onClick={() => onUpdate({ yAxisId: 'right' })}
-          className={`px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors ${
+          className={`px-2 py-0.5 text-[0.65rem] font-medium transition-colors ${
             series.yAxisId === 'right'
               ? 'bg-accent text-accent-foreground'
               : 'text-muted-foreground hover:bg-accent/30'
           }`}
         >
-          R
+          Right
         </button>
       </div>
 
       {/* Remove */}
       <button
         onClick={onRemove}
-        className="ml-auto text-muted-foreground hover:text-destructive text-xs px-1"
+        className="ml-auto rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
       >
-        &times;
+        Remove
       </button>
     </div>
   )

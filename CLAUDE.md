@@ -5,13 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-pnpm dev          # Dev server on http://localhost:3000
-pnpm build        # Production build (.output/ for Node, dist/ for CF Workers)
-pnpm test         # Run tests (vitest run)
-pnpm lint         # ESLint
-pnpm format       # Prettier
-pnpm check        # Prettier --write + ESLint --fix
-pnpm deploy       # Build + deploy to Cloudflare Workers
+pnpm dev            # Dev server on http://localhost:3000
+pnpm build          # Production build (.output/ for Node, dist/ for CF Workers)
+pnpm test           # Run tests (vitest run)
+pnpm lint           # ESLint
+pnpm format         # Prettier
+pnpm check          # Prettier --write + ESLint --fix
+pnpm deploy         # Build + deploy to Cloudflare Workers
+pnpm data:fetch     # Download raw datasets → python/data/raw/
+pnpm data:clean     # Process raw → public/data/ (frontend-ready)
+pnpm data:sync      # Install Python deps (uv sync)
+pnpm data:pipeline  # Full pipeline: sync + fetch + clean
 ```
 
 ## Environment
@@ -46,7 +50,7 @@ File-based routing via TanStack Router. Route tree is auto-generated in `src/rou
 
 All data lives in `public/data/` as static JSON/GeoJSON files. `ExplorerProvider` manages all state via `useReducer` and data fetching via `useState` + lazy loading. Base datasets (neighborhoods, routes, grocery stores) load on mount; layer-specific datasets load on toggle. Expensive computations are memoized with `useMemo`.
 
-Key datasets: `csb_latest.json` (311 complaints), `neighborhoods.geojson` (79 boundaries), `stops.geojson`/`shapes.geojson`/`routes.json` (transit GTFS), `food_deserts.geojson`, `grocery_stores.geojson`. Vacancy properties are mock data generated deterministically at runtime in `src/lib/vacancy-data.ts`.
+Key datasets: `csb_latest.json` (311 complaints), `neighborhoods.geojson` (79 boundaries), `stops.geojson`/`shapes.geojson`/`routes.json` (transit GTFS), `food_deserts.geojson`, `grocery_stores.geojson`, `crime.json` (SLMPD crime incidents), `arpa.json` (ARPA fund expenditures), `demographics.json` (census demographics by neighborhood), `vacancies.json` (real vacant building data). Vacancy falls back to mock data (`src/lib/vacancy-data.ts`) if real data is unavailable.
 
 The data pipeline is split into two scripts: `python/scripts/fetch_raw.py` downloads raw datasets into `python/data/raw/`, and `python/scripts/clean_data.py` processes them into the JSON/GeoJSON files in `public/data/`.
 
@@ -54,9 +58,9 @@ The data pipeline is split into two scripts: `python/scripts/fetch_raw.py` downl
 
 - `src/routes/` — `index.tsx` renders `<MapExplorer />`, `__root.tsx` provides layout shell with Nav
 - `src/components/explorer/` — Core app: `MapExplorer.tsx` (CSS grid layout), `ExplorerProvider.tsx` (state + data), `ExplorerMap.tsx` (Mapbox canvas + click handler), `LayerPanel.tsx` (left rail), `DetailPanel.tsx` (right rail), `AnalyticsPanel.tsx` (bottom drawer)
-- `src/components/explorer/layers/` — Map layers: `NeighborhoodBaseLayer`, `ComplaintsLayer`, `TransitLayer`, `VacancyLayer`, `FoodAccessLayer`
+- `src/components/explorer/layers/` — Map layers: `NeighborhoodBaseLayer`, `ComplaintsLayer`, `CrimeLayer`, `TransitLayer`, `VacancyLayer`, `FoodAccessLayer`, `DemographicsLayer`
 - `src/components/explorer/detail/` — Entity detail views: `NeighborhoodDetail`, `VacancyDetail`, `StopDetail`, `GroceryDetail`, `FoodDesertDetail`
-- `src/components/explorer/analytics/` — Analytics modules: `ComplaintsAnalytics`, `TransitAnalytics`, `VacancyAnalytics`, `NeighborhoodAnalytics`, `ChartBuilder`
+- `src/components/explorer/analytics/` — Analytics modules: `ComplaintsAnalytics`, `CrimeAnalytics`, `TransitAnalytics`, `VacancyAnalytics`, `ArpaAnalytics`, `DemographicsAnalytics`, `NeighborhoodAnalytics`, `ChartBuilder`
 - `src/components/map/` — `MapProvider` (Mapbox wrapper), `MapLegend`
 - `src/components/charts/` — Reusable charts: `TimeSeriesChart`, `CategoryBarChart`, `HourlyChart`, `WeekdayChart`, `WeatherInsights`
 - `src/components/ui/` — shadcn/ui primitives

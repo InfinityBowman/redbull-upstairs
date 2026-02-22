@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { animate, motion, useMotionValue } from 'motion/react'
 import { useExplorer } from '@/components/explorer/ExplorerProvider'
 import { ComplaintsAnalytics } from './analytics/ComplaintsAnalytics'
@@ -6,20 +6,64 @@ import { TransitAnalytics } from './analytics/TransitAnalytics'
 import { VacancyAnalytics } from './analytics/VacancyAnalytics'
 import { NeighborhoodAnalytics } from './analytics/NeighborhoodAnalytics'
 import { ChartBuilder } from './analytics/ChartBuilder'
+import { CrimeAnalytics } from './analytics/CrimeAnalytics'
+import { ArpaAnalytics } from './analytics/ArpaAnalytics'
+import { DemographicsAnalytics } from './analytics/DemographicsAnalytics'
+import type { LayerToggles } from '@/lib/explorer-types'
+
+interface TabDef {
+  key: string
+  label: string
+  layer?: keyof LayerToggles
+  node: React.ReactNode
+}
+
+const LAYER_TABS: Array<{
+  key: string
+  label: string
+  layer: keyof LayerToggles
+  component: () => React.ReactNode
+}> = [
+  { key: 'complaints', label: '311', layer: 'complaints', component: () => <ComplaintsAnalytics /> },
+  { key: 'crime', label: 'Crime', layer: 'crime', component: () => <CrimeAnalytics /> },
+  { key: 'transit', label: 'Transit', layer: 'transit', component: () => <TransitAnalytics /> },
+  { key: 'vacancy', label: 'Vacancy', layer: 'vacancy', component: () => <VacancyAnalytics /> },
+  { key: 'arpa', label: 'ARPA', layer: 'arpa', component: () => <ArpaAnalytics /> },
+  { key: 'demographics', label: 'Demo', layer: 'demographics', component: () => <DemographicsAnalytics /> },
+]
 
 export function AnalyticsPanel() {
   const { state, dispatch } = useExplorer()
+  const [activeTab, setActiveTab] = useState<string>('')
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
   const heightRef = useRef(state.analyticsPanelHeight)
   const contentRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const clipHeight = useMotionValue(state.analyticsPanelExpanded ? state.analyticsPanelHeight : 0)
 
+  // Build available tabs from active layers + chart builder
+  const tabs = useMemo<Array<TabDef>>(() => {
+    const result: Array<TabDef> = []
+    for (const lt of LAYER_TABS) {
+      if (state.layers[lt.layer]) {
+        result.push({ key: lt.key, label: lt.label, layer: lt.layer, node: lt.component() })
+      }
+    }
+    result.push({ key: 'chart', label: 'Chart Builder', node: <ChartBuilder /> })
+    return result
+  }, [state.layers])
+
+  // Auto-select first tab when active layers change
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.find((t) => t.key === activeTab)) {
+      setActiveTab(tabs[0].key)
+    }
+  }, [tabs, activeTab])
+
   useEffect(() => {
     heightRef.current = state.analyticsPanelHeight
   }, [state.analyticsPanelHeight])
 
-  // Clean up window listeners if component unmounts mid-drag
   useEffect(() => {
     return () => {
       dragRef.current = null
@@ -36,13 +80,11 @@ export function AnalyticsPanel() {
         if (!dragRef.current) return
         const delta = dragRef.current.startY - ev.clientY
         const next = Math.min(800, Math.max(150, dragRef.current.startH + delta))
-        // Write directly to motion value — no React re-render, no animation
         clipHeight.jump(next)
         if (contentRef.current) contentRef.current.style.height = `${next}px`
       }
 
       const onUp = () => {
-        // Commit final height to state
         const final = Math.round(clipHeight.get())
         isDragging.current = false
         dispatch({ type: 'SET_ANALYTICS_HEIGHT', height: final })
@@ -57,25 +99,13 @@ export function AnalyticsPanel() {
     [dispatch, clipHeight],
   )
 
-  const hasActiveLayer =
-    state.layers.complaints ||
-    state.layers.transit ||
-    state.layers.vacancy ||
-    state.layers.foodAccess
-
   const showNeighborhood = state.selected?.type === 'neighborhood'
-
-  const modules = [
-    state.layers.complaints ? <ComplaintsAnalytics key="complaints" /> : null,
-    state.layers.transit ? <TransitAnalytics key="transit" /> : null,
-    state.layers.vacancy ? <VacancyAnalytics key="vacancy" /> : null,
-  ].filter(Boolean)
-
   const expanded = state.analyticsPanelExpanded
+  const currentTab = tabs.find((t) => t.key === activeTab)
 
   return (
     <div className="bg-card">
-      {/* Drag handle — instant show/hide via height, no animation */}
+      {/* Drag handle */}
       <div
         onMouseDown={expanded ? onDragStart : undefined}
         className="group flex items-center justify-center overflow-hidden border-b border-border/40 hover:bg-accent/30"
@@ -106,7 +136,22 @@ export function AnalyticsPanel() {
         </span>
       </button>
 
-      {/* Charts — always mounted, motion handles the clip animation */}
+      {/* Tab bar */}
+      {expanded && !showNeighborhood && tabs.length > 0 && (
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-border/40 px-4 py-1.5">
+          {tabs.map((tab) => (
+            <TabPill
+              key={tab.key}
+              active={activeTab === tab.key}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </TabPill>
+          ))}
+        </div>
+      )}
+
+      {/* Content */}
       <motion.div
         style={{ height: clipHeight }}
         className="overflow-hidden"
@@ -120,22 +165,41 @@ export function AnalyticsPanel() {
             <NeighborhoodAnalytics
               id={(state.selected as { type: 'neighborhood'; id: string }).id}
             />
+          ) : currentTab ? (
+            currentTab.node
           ) : (
-            <div className="flex flex-col gap-6">
-              {hasActiveLayer && modules.length > 0 && (
-                modules.length === 1 ? (
-                  modules[0]
-                ) : (
-                  <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                    {modules}
-                  </div>
-                )
-              )}
-              <ChartBuilder />
+            <div className="flex h-[120px] flex-col items-center justify-center gap-1 text-muted-foreground">
+              <span className="text-xs">No layers active</span>
+              <span className="text-[0.65rem]">
+                Toggle layers in the left panel to see analytics
+              </span>
             </div>
           )}
         </div>
       </motion.div>
     </div>
+  )
+}
+
+function TabPill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 rounded-md px-2.5 py-1 text-[0.65rem] font-medium transition-colors ${
+        active
+          ? 'bg-accent text-accent-foreground'
+          : 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
   )
 }

@@ -61,7 +61,12 @@ export function VacancyLayer() {
         id="vacancy-circles"
         type="circle"
         paint={{
-          'circle-radius': ['case', ['==', ['get', 'type'], 'building'], 6, 4],
+          'circle-radius': [
+            'case',
+            ['==', ['get', 'type'], 'building'],
+            6,
+            4,
+          ],
           'circle-color': [
             'step',
             ['get', 'score'],

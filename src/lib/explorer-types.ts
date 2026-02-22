@@ -1,7 +1,10 @@
 import type {
+  ArpaData,
+  CrimeData,
   CSBData,
   FoodDesertProperties,
   GeoJSONCollection,
+  NeighborhoodDemographics,
   NeighborhoodProperties,
   StopStats,
   TransitRoute,
@@ -25,6 +28,9 @@ export interface LayerToggles {
   transit: boolean
   vacancy: boolean
   foodAccess: boolean
+  crime: boolean
+  arpa: boolean
+  demographics: boolean
 }
 
 export interface SubToggles {
@@ -40,6 +46,10 @@ export interface SubToggles {
   vacancyMinScore: number
   foodDesertTracts: boolean
   groceryStores: boolean
+  crimeMode: 'choropleth' | 'heatmap'
+  crimeCategory: string
+  arpaCategory: string
+  demographicsMetric: 'population' | 'vacancyRate' | 'popChange'
 }
 
 export interface ExplorerState {
@@ -79,6 +89,9 @@ export interface ExplorerData {
   stopStats: Record<string, StopStats> | null
   foodDeserts: GeoJSONCollection<FoodDesertProperties> | null
   vacancyData: Array<VacantProperty> | null
+  crimeData: CrimeData | null
+  arpaData: ArpaData | null
+  demographicsData: Record<string, NeighborhoodDemographics> | null
 }
 
 // ── Initial State ──────────────────────────────────────────
@@ -89,6 +102,9 @@ export const initialExplorerState: ExplorerState = {
     transit: false,
     vacancy: false,
     foodAccess: false,
+    crime: false,
+    arpa: false,
+    demographics: false,
   },
   subToggles: {
     complaintsMode: 'choropleth',
@@ -103,6 +119,10 @@ export const initialExplorerState: ExplorerState = {
     vacancyMinScore: 0,
     foodDesertTracts: true,
     groceryStores: true,
+    crimeMode: 'choropleth',
+    crimeCategory: 'all',
+    arpaCategory: 'all',
+    demographicsMetric: 'population',
   },
   selected: null,
   detailPanelOpen: false,

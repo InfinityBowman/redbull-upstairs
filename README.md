@@ -1,12 +1,12 @@
 # STL Urban Analytics
 
-A unified urban data analytics platform for the City of St. Louis, combining **311 complaints**, **transit equity**, **vacancy triage**, and **food access** data into a single fullscreen Map Explorer with cross-dataset analysis.
+A unified urban data analytics platform for the City of St. Louis, combining **311 complaints**, **crime data**, **transit equity**, **vacancy triage**, **food access**, **census demographics**, and **ARPA fund expenditures** into a single fullscreen Map Explorer with cross-dataset analysis.
 
 Built for the _St. Louis Sustainable Urban Innovation_ hackathon track.
 
 ## Map Explorer (`/`)
 
-A fullscreen, map-centric dashboard with four toggleable data layers and integrated analytics.
+A fullscreen, map-centric dashboard with seven toggleable data layers and integrated analytics.
 
 ### Layout
 
@@ -25,6 +25,12 @@ A fullscreen, map-centric dashboard with four toggleable data layers and integra
 
 **Food Access** — LILA food desert tracts and grocery store locations. Detail view: demographics, nearby transit, nearest grocery, equity score.
 
+**Crime** — SLMPD crime incidents as choropleth (by neighborhood count) or heatmap (individual points). Category filtering by offense type. Analytics: daily volume + 7-day MA, top offenses, hourly/weekday distribution, felony and firearm counts.
+
+**Demographics** — Census data choropleth by population, vacancy rate, or population change (2010-2020). Analytics: city-wide KPIs, most populated neighborhoods, population change chart.
+
+**ARPA Funds** — Analytics-only layer (no map visualization). Monthly spending + cumulative line, category breakdown, top vendors and projects lists.
+
 ### Cross-Dataset Features
 
 - **Neighborhood click** — Eagerly loads all datasets. Detail panel shows composite equity score (transit + 311 + food + vacancy) with breakdown bars. Analytics switches to cross-dataset view with top 311 issues chart and best rehab candidates.
@@ -40,7 +46,7 @@ A fullscreen, map-centric dashboard with four toggleable data layers and integra
 | Map           | [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) via [react-map-gl](https://visgl.github.io/react-map-gl/) |
 | Charts        | [Recharts](https://recharts.org/)                                                                               |
 | Hosting       | [Cloudflare Workers](https://developers.cloudflare.com/workers/) via `@cloudflare/vite-plugin`                  |
-| Data          | Static JSON/GeoJSON in `public/data/`, mock vacancy data generated at runtime                                   |
+| Data          | Static JSON/GeoJSON in `public/data/`, real vacancy data with mock fallback                                     |
 | Data Pipeline | Python 3.12 + [uv](https://docs.astral.sh/uv/) (pandas, geopandas, shapely)                                     |
 | Analysis      | Jupyter notebooks with matplotlib + folium                                                                      |
 
@@ -120,9 +126,11 @@ src/
 │   │   ├── layers/
 │   │   │   ├── NeighborhoodBaseLayer.tsx
 │   │   │   ├── ComplaintsLayer.tsx
+│   │   │   ├── CrimeLayer.tsx
 │   │   │   ├── TransitLayer.tsx
 │   │   │   ├── VacancyLayer.tsx
-│   │   │   └── FoodAccessLayer.tsx
+│   │   │   ├── FoodAccessLayer.tsx
+│   │   │   └── DemographicsLayer.tsx
 │   │   ├── detail/
 │   │   │   ├── NeighborhoodDetail.tsx  Composite score + cross-dataset
 │   │   │   ├── VacancyDetail.tsx       Triage score breakdown
@@ -131,8 +139,11 @@ src/
 │   │   │   └── FoodDesertDetail.tsx    Demographics + equity score
 │   │   └── analytics/
 │   │       ├── ComplaintsAnalytics.tsx  311 charts + KPIs
+│   │       ├── CrimeAnalytics.tsx      Crime charts + KPIs
 │   │       ├── TransitAnalytics.tsx    Equity gap list
 │   │       ├── VacancyAnalytics.tsx    Score distribution
+│   │       ├── ArpaAnalytics.tsx       ARPA spending charts
+│   │       ├── DemographicsAnalytics.tsx Census data charts
 │   │       ├── NeighborhoodAnalytics.tsx Cross-dataset view
 │   │       └── ChartBuilder.tsx        User-configurable charts
 │   ├── map/
@@ -166,7 +177,11 @@ public/
     ├── routes.json               Bus + rail route metadata (8 KB)
     ├── stop_stats.json           Service frequency per stop (232 KB)
     ├── food_deserts.geojson      LILA census tracts (16 KB)
-    └── grocery_stores.geojson    Grocery store locations (4 KB)
+    ├── grocery_stores.geojson    Grocery store locations (4 KB)
+    ├── crime.json                SLMPD crime incidents
+    ├── arpa.json                 ARPA fund expenditures
+    ├── demographics.json         Census demographics by neighborhood
+    └── vacancies.json            Real vacant building data
 python/
 ├── pyproject.toml                uv project config + dependencies
 ├── .python-version               Pins Python 3.12
@@ -187,7 +202,10 @@ python/
 | Transit (GTFS)          | [Metro Transit](https://www.metrostlouis.org/developer-resources/) | Converted from GTFS to GeoJSON |
 | Food Desert Tracts      | USDA Economic Research Service (LILA definitions)                  | Simplified GeoJSON             |
 | Grocery Stores          | Manual compilation + geocoding                                     | GeoJSON                        |
-| Vacant Properties       | Mock data modeled on LRA inventory + CSB formats                   | Generated at runtime           |
+| Vacant Properties       | City of STL Vacant Building List (fallback: mock data)             | JSON                           |
+| Crime Incidents         | [SLMPD](https://www.slmpd.org/crime_stats.shtml) NIBRS data       | Pre-processed JSON from CSV    |
+| ARPA Expenditures       | [City of STL Open Data](https://www.stlouis-mo.gov/)              | JSON API                       |
+| Census Demographics     | City of STL Planning Dept neighborhood census pages                | Scraped HTML → JSON            |
 
 ## Algorithms
 

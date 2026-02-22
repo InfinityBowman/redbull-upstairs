@@ -141,3 +141,63 @@ export interface KpiItem {
 export type MapMode = 'choropleth' | 'heatmap'
 
 export type VacancyBestUse = 'housing' | 'solar' | 'garden'
+
+// ── Crime ──────────────────────────────────────────────────
+
+export interface CrimeNeighborhoodStats {
+  name: string
+  total: number
+  topOffenses: Record<string, number>
+  felonies: number
+  firearmIncidents: number
+}
+
+export interface CrimeData {
+  year: number
+  totalIncidents: number
+  totalFelonies: number
+  totalFirearms: number
+  categories: Record<string, number>
+  neighborhoods: Record<string, CrimeNeighborhoodStats>
+  dailyCounts: Record<string, number>
+  hourly: Record<string, number>
+  weekday: Record<string, number>
+  monthly: Record<string, Record<string, number>>
+  heatmapPoints: Array<[number, number, string]> // [lat, lng, category]
+}
+
+// ── ARPA Funds ─────────────────────────────────────────────
+
+export interface ArpaProject {
+  id: number
+  title: string
+  totalSpent: number
+  category: string
+}
+
+export interface ArpaData {
+  totalSpent: number
+  transactionCount: number
+  projects: Array<ArpaProject>
+  monthlySpending: Record<string, number>
+  cumulativeSpending: Record<string, number>
+  topVendors: Array<{ name: string; totalSpent: number }>
+  categoryBreakdown: Record<string, number>
+}
+
+// ── Census Demographics ────────────────────────────────────
+
+export interface NeighborhoodDemographics {
+  name: string
+  population: Record<string, number> // year → count
+  race: Record<string, number>
+  housing: {
+    totalUnits: number
+    occupied: number
+    vacant: number
+    vacancyRate: number
+    ownerOccupied: number
+    renterOccupied: number
+  }
+  popChange10to20: number
+}
