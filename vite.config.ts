@@ -8,7 +8,13 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 
 const config = defineConfig({
   plugins: [
-    devtools(),
+    devtools({
+      // The devtools event bus opens an extra local port (default 42069).
+      // Keep it opt-in to avoid startup failures in restricted environments.
+      eventBusConfig: {
+        enabled: process.env.TANSTACK_DEVTOOLS_EVENT_BUS === 'true',
+      },
+    }),
     cloudflare({ viteEnvironment: { name: 'ssr' } }),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({

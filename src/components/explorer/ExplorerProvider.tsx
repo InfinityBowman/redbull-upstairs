@@ -52,6 +52,23 @@ function explorerReducer(
       }
     case 'SET_MAP_STYLE':
       return { ...state, mapStyle: action.style }
+    case 'TOGGLE_COMPARE_MODE':
+      return {
+        ...state,
+        compareMode: !state.compareMode,
+        compareNeighborhoodA: null,
+        compareNeighborhoodB: null,
+      }
+    case 'SET_COMPARE_NEIGHBORHOOD':
+      return {
+        ...state,
+        [`compareNeighborhood${action.slot}`]: action.id,
+      }
+    case 'CLEAR_COMPARE_NEIGHBORHOOD':
+      return {
+        ...state,
+        [`compareNeighborhood${action.slot}`]: null,
+      }
     default:
       return state
   }
@@ -234,6 +251,16 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
       loadLayerData('demographics')
     }
   }, [state.selected, loadLayerData])
+
+  // Also load data when compare mode neighborhoods are selected
+  useEffect(() => {
+    if (state.compareNeighborhoodA || state.compareNeighborhoodB) {
+      loadLayerData('complaints')
+      loadLayerData('transit')
+      loadLayerData('vacancy')
+      loadLayerData('foodAccess')
+    }
+  }, [state.compareNeighborhoodA, state.compareNeighborhoodB, loadLayerData])
 
   return (
     <ExplorerContext.Provider value={{ state, dispatch }}>

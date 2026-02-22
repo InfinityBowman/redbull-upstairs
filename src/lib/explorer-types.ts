@@ -65,6 +65,9 @@ export interface ExplorerState {
   analyticsPanelExpanded: boolean
   analyticsPanelHeight: number
   mapStyle: MapStyle
+  compareMode: boolean
+  compareNeighborhoodA: string | null
+  compareNeighborhoodB: string | null
 }
 
 // ── Actions ────────────────────────────────────────────────
@@ -82,6 +85,9 @@ export type ExplorerAction =
   | { type: 'SET_ANALYTICS_HEIGHT'; height: number }
   | { type: 'CLOSE_DETAIL' }
   | { type: 'SET_MAP_STYLE'; style: MapStyle }
+  | { type: 'TOGGLE_COMPARE_MODE' }
+  | { type: 'SET_COMPARE_NEIGHBORHOOD'; slot: 'A' | 'B'; id: string }
+  | { type: 'CLEAR_COMPARE_NEIGHBORHOOD'; slot: 'A' | 'B' }
 
 // ── Data Context ───────────────────────────────────────────
 
@@ -139,4 +145,7 @@ export const initialExplorerState: ExplorerState = {
   analyticsPanelExpanded: false,
   analyticsPanelHeight: 600,
   mapStyle: 'streets',
+  compareMode: false,
+  compareNeighborhoodA: null,
+  compareNeighborhoodB: null,
 }

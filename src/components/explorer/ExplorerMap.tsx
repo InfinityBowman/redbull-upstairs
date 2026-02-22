@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef, useEffect } from 'react'
 import type { MapStyle } from '@/lib/explorer-types'
 import { useData, useExplorer } from './ExplorerProvider'
 import { NeighborhoodBaseLayer } from './layers/NeighborhoodBaseLayer'
@@ -16,7 +16,11 @@ import {
   SwatchSection,
   SymbolSection,
 } from '@/components/map/MapLegend'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   CHORO_COLORS,
   CRIME_COLORS,
@@ -65,112 +69,158 @@ export function ExplorerMap() {
   const { state, dispatch } = useExplorer()
   const data = useData()
 
-  const handleMapLoad = useCallback(
-    (map: mapboxgl.Map) => {
-      // Unified click handler using queryRenderedFeatures
-      map.on('click', (e) => {
-        const point = e.point
+  // Use refs to always have current state in map event handlers
+  const stateRef = useRef(state)
+  const dispatchRef = useRef(dispatch)
 
-        // 1. Check vacancy markers first (most specific points)
-        const vacancyFeatures = map
-          .queryRenderedFeatures(point, { layers: ['vacancy-circles'] })
-          .filter(Boolean)
-        if (vacancyFeatures.length > 0) {
-          const id = vacancyFeatures[0].properties?.id
-          if (id != null) {
-            dispatch({
-              type: 'SELECT_ENTITY',
-              entity: { type: 'vacancy', id: Number(id) },
-            })
-            return
-          }
-        }
+  useEffect(() => {
+    stateRef.current = state
+    dispatchRef.current = dispatch
+  }, [state, dispatch])
 
-        // 2. Transit stops
-        const stopFeatures = map
-          .queryRenderedFeatures(point, { layers: ['stops-circles'] })
-          .filter(Boolean)
-        if (stopFeatures.length > 0) {
-          const id = stopFeatures[0].properties?.stop_id
-          if (id) {
-            dispatch({
-              type: 'SELECT_ENTITY',
-              entity: { type: 'stop', id: String(id) },
-            })
-            return
-          }
-        }
+  const handleMapLoad = useCallback((map: mapboxgl.Map) => {
+    // Unified click handler using queryRenderedFeatures
+    map.on('click', (e) => {
+      const point = e.point
+      const currentState = stateRef.current
+      const currentDispatch = dispatchRef.current
 
-        // 3. Grocery stores
-        const groceryFeatures = map
-          .queryRenderedFeatures(point, { layers: ['grocery-circles'] })
-          .filter(Boolean)
-        if (groceryFeatures.length > 0) {
-          const idx = groceryFeatures[0].properties?.idx
-          if (idx != null) {
-            dispatch({
-              type: 'SELECT_ENTITY',
-              entity: { type: 'grocery', id: Number(idx) },
-            })
-            return
-          }
-        }
-
-        // 4. Food desert tracts
-        const desertFeatures = map
-          .queryRenderedFeatures(point, { layers: ['desert-fill'] })
-          .filter(Boolean)
-        if (desertFeatures.length > 0) {
-          const tractId = desertFeatures[0].properties?.tract_id
-          if (tractId) {
-            dispatch({
-              type: 'SELECT_ENTITY',
-              entity: { type: 'foodDesert', id: String(tractId) },
-            })
-            return
-          }
-        }
-
-        // 5. Neighborhood polygons (also catches crime/demographics choropleth clicks)
+      // In compare mode, only handle neighborhood clicks for comparison
+      if (currentState.compareMode) {
         const hoodFeatures = map
-          .queryRenderedFeatures(point, { layers: ['neighborhood-base-fill'] })
+          .queryRenderedFeatures(point, {
+            layers: ['neighborhood-base-fill'],
+          })
           .filter(Boolean)
         if (hoodFeatures.length > 0) {
           const nhdNum = hoodFeatures[0].properties?.NHD_NUM
           if (nhdNum != null) {
-            dispatch({
-              type: 'SELECT_ENTITY',
-              entity: {
-                type: 'neighborhood',
-                id: String(nhdNum).padStart(2, '0'),
-              },
-            })
+            const hoodId = String(nhdNum).padStart(2, '0')
+            // If A is empty, set A; else if B is empty, set B; else replace A
+            if (!currentState.compareNeighborhoodA) {
+              currentDispatch({
+                type: 'SET_COMPARE_NEIGHBORHOOD',
+                slot: 'A',
+                id: hoodId,
+              })
+            } else if (!currentState.compareNeighborhoodB) {
+              currentDispatch({
+                type: 'SET_COMPARE_NEIGHBORHOOD',
+                slot: 'B',
+                id: hoodId,
+              })
+            } else {
+              // Both filled - replace A
+              currentDispatch({
+                type: 'SET_COMPARE_NEIGHBORHOOD',
+                slot: 'A',
+                id: hoodId,
+              })
+            }
             return
           }
         }
+        return
+      }
 
-        // Empty space — clear
-        dispatch({ type: 'CLEAR_SELECTION' })
+      // 1. Check vacancy markers first (most specific points)
+      const vacancyFeatures = map
+        .queryRenderedFeatures(point, { layers: ['vacancy-circles'] })
+        .filter(Boolean)
+      if (vacancyFeatures.length > 0) {
+        const id = vacancyFeatures[0].properties?.id
+        if (id != null) {
+          currentDispatch({
+            type: 'SELECT_ENTITY',
+            entity: { type: 'vacancy', id: Number(id) },
+          })
+          return
+        }
+      }
+
+      // 2. Transit stops
+      const stopFeatures = map
+        .queryRenderedFeatures(point, { layers: ['stops-circles'] })
+        .filter(Boolean)
+      if (stopFeatures.length > 0) {
+        const id = stopFeatures[0].properties?.stop_id
+        if (id) {
+          currentDispatch({
+            type: 'SELECT_ENTITY',
+            entity: { type: 'stop', id: String(id) },
+          })
+          return
+        }
+      }
+
+      // 3. Grocery stores
+      const groceryFeatures = map
+        .queryRenderedFeatures(point, { layers: ['grocery-circles'] })
+        .filter(Boolean)
+      if (groceryFeatures.length > 0) {
+        const idx = groceryFeatures[0].properties?.idx
+        if (idx != null) {
+          currentDispatch({
+            type: 'SELECT_ENTITY',
+            entity: { type: 'grocery', id: Number(idx) },
+          })
+          return
+        }
+      }
+
+      // 4. Food desert tracts
+      const desertFeatures = map
+        .queryRenderedFeatures(point, { layers: ['desert-fill'] })
+        .filter(Boolean)
+      if (desertFeatures.length > 0) {
+        const tractId = desertFeatures[0].properties?.tract_id
+        if (tractId) {
+          currentDispatch({
+            type: 'SELECT_ENTITY',
+            entity: { type: 'foodDesert', id: String(tractId) },
+          })
+          return
+        }
+      }
+
+      // 5. Neighborhood polygons (also catches crime/demographics choropleth clicks)
+      const hoodFeatures = map
+        .queryRenderedFeatures(point, { layers: ['neighborhood-base-fill'] })
+        .filter(Boolean)
+      if (hoodFeatures.length > 0) {
+        const nhdNum = hoodFeatures[0].properties?.NHD_NUM
+        if (nhdNum != null) {
+          currentDispatch({
+            type: 'SELECT_ENTITY',
+            entity: {
+              type: 'neighborhood',
+              id: String(nhdNum).padStart(2, '0'),
+            },
+          })
+          return
+        }
+      }
+
+      // Empty space — clear
+      currentDispatch({ type: 'CLEAR_SELECTION' })
+    })
+
+    // Pointer cursor on hover
+    const interactiveLayers = [
+      'vacancy-circles',
+      'stops-circles',
+      'grocery-circles',
+      'desert-fill',
+      'neighborhood-base-fill',
+    ]
+
+    map.on('mousemove', (e) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: interactiveLayers,
       })
-
-      // Pointer cursor on hover
-      const interactiveLayers = [
-        'vacancy-circles',
-        'stops-circles',
-        'grocery-circles',
-        'desert-fill',
-        'neighborhood-base-fill',
-      ]
-
-      map.on('mousemove', (e) => {
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: interactiveLayers,
-        })
-        map.getCanvas().style.cursor = features.length > 0 ? 'pointer' : ''
-      })
-    },
-    [dispatch],
-  )
+      map.getCanvas().style.cursor = features.length > 0 ? 'pointer' : ''
+    })
+  }, [])
 
   const complaintsTitle = useMemo(() => {
     if (!state.layers.complaints) return ''
@@ -210,7 +260,11 @@ export function ExplorerMap() {
     state.layers.transit
 
   return (
-    <MapProvider className="h-full w-full" mapStyle={MAP_STYLES[state.mapStyle]} onMapLoad={handleMapLoad}>
+    <MapProvider
+      className="h-full w-full"
+      mapStyle={MAP_STYLES[state.mapStyle]}
+      onMapLoad={handleMapLoad}
+    >
       <MapStyleToggle />
       {data.neighborhoods && <NeighborhoodBaseLayer />}
       {state.layers.complaints && <ComplaintsLayer />}
@@ -235,28 +289,69 @@ export function ExplorerMap() {
             <>
               <div>
                 <div className="mb-1 flex items-center gap-1">
-                  <span className="font-semibold text-foreground">Vacancy Priority</span>
+                  <span className="font-semibold text-foreground">
+                    Vacancy Priority
+                  </span>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button className="inline-flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full bg-muted text-[0.55rem] font-bold leading-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
                         ?
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="left" align="start" className="w-56 rounded-lg bg-popover p-2.5 text-xs text-popover-foreground shadow-md ring-1 ring-foreground/10" hideArrow>
-                      <p className="mb-1.5 font-semibold">How priority is calculated</p>
+                    <TooltipContent
+                      side="left"
+                      align="start"
+                      className="w-56 rounded-lg bg-popover p-2.5 text-xs text-popover-foreground shadow-md ring-1 ring-foreground/10"
+                      hideArrow
+                    >
+                      <p className="mb-1.5 font-semibold">
+                        How priority is calculated
+                      </p>
                       <p className="mb-1 text-muted-foreground">
-                        Properties are ranked relative to each other using a weighted score:
+                        Properties are ranked relative to each other using a
+                        weighted score:
                       </p>
                       <ul className="space-y-0.5 text-muted-foreground">
-                        <li><span className="font-medium text-foreground">25%</span> Condition (violation severity)</li>
-                        <li><span className="font-medium text-foreground">20%</span> Complaint density</li>
-                        <li><span className="font-medium text-foreground">15%</span> Ownership (LRA/City/Private)</li>
-                        <li><span className="font-medium text-foreground">15%</span> Tax delinquency</li>
-                        <li><span className="font-medium text-foreground">15%</span> Proximity activity</li>
-                        <li><span className="font-medium text-foreground">10%</span> Lot size</li>
+                        <li>
+                          <span className="font-medium text-foreground">
+                            25%
+                          </span>{' '}
+                          Condition (violation severity)
+                        </li>
+                        <li>
+                          <span className="font-medium text-foreground">
+                            20%
+                          </span>{' '}
+                          Complaint density
+                        </li>
+                        <li>
+                          <span className="font-medium text-foreground">
+                            15%
+                          </span>{' '}
+                          Ownership (LRA/City/Private)
+                        </li>
+                        <li>
+                          <span className="font-medium text-foreground">
+                            15%
+                          </span>{' '}
+                          Tax delinquency
+                        </li>
+                        <li>
+                          <span className="font-medium text-foreground">
+                            15%
+                          </span>{' '}
+                          Proximity activity
+                        </li>
+                        <li>
+                          <span className="font-medium text-foreground">
+                            10%
+                          </span>{' '}
+                          Lot size
+                        </li>
                       </ul>
                       <p className="mt-1.5 text-muted-foreground">
-                        Colors show percentile rank — each band holds ~20% of properties.
+                        Colors show percentile rank — each band holds ~20% of
+                        properties.
                       </p>
                     </TooltipContent>
                   </Tooltip>
