@@ -33,19 +33,14 @@ export const Route = createFileRoute('/api/chat')({
 
         const { messages, context } = body
 
-        console.log('[chat] context type:', typeof context, '| length:', typeof context === 'string' ? context.length : 'N/A')
-        console.log('[chat] messages count:', Array.isArray(messages) ? messages.length : 'not array')
-
         // Validate inputs to prevent abuse (higher limit for multi-turn tool loops)
         if (!Array.isArray(messages) || messages.length > 100) {
-          console.log('[chat] REJECTED: invalid messages')
           return new Response(
             JSON.stringify({ error: 'Invalid messages' }),
             { status: 400, headers: { 'Content-Type': 'application/json' } },
           )
         }
         if (typeof context !== 'string' || context.length > 50000) {
-          console.log('[chat] REJECTED: invalid context, length:', typeof context === 'string' ? context.length : typeof context)
           return new Response(
             JSON.stringify({ error: 'Invalid context' }),
             { status: 400, headers: { 'Content-Type': 'application/json' } },
@@ -90,10 +85,6 @@ export const Route = createFileRoute('/api/chat')({
           tools: TOOL_DEFINITIONS,
           tool_choice: 'auto',
         }
-
-        console.log('[chat] system prompt:\n', context)
-        console.log('[chat] user messages:', JSON.stringify(sanitizedMessages, null, 2))
-        console.log('[chat] tools:', TOOL_DEFINITIONS.map(t => t.function.name).join(', '))
 
         const upstreamRes = await fetch(
           'https://openrouter.ai/api/v1/chat/completions',
