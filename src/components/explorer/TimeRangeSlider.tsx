@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { Slider } from '@/components/ui/slider'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useData, useExplorer } from './ExplorerProvider'
 import { cn } from '@/lib/utils'
 
@@ -121,14 +125,40 @@ export function TimeRangeSlider() {
           Year
           <Tooltip>
             <TooltipTrigger asChild>
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="cursor-help text-muted-foreground/50 transition-colors hover:text-muted-foreground">
-                <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M8 7v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 16 16"
+                fill="none"
+                className="cursor-help text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+              >
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="7"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+                <path
+                  d="M8 7v4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
                 <circle cx="8" cy="5" r="0.75" fill="currentColor" />
               </svg>
             </TooltipTrigger>
+<<<<<<< HEAD
             <TooltipContent side="top" className="max-w-[200px] text-center text-xs">
               Filters 311 Complaints and Crime heatmap layers by year. Enable Forecast to predict future trends.
+=======
+            <TooltipContent
+              side="top"
+              className="max-w-[200px] text-center text-xs"
+            >
+              Filters 311 Complaints and Crime heatmap layers by year. Enable
+              Forecast to predict future trends.
+>>>>>>> 32296c2 (your commit message)
             </TooltipContent>
           </Tooltip>
         </span>
@@ -157,6 +187,7 @@ export function TimeRangeSlider() {
         )}
       />
 
+<<<<<<< HEAD
       <div className="mt-0.5 flex select-none items-center justify-between px-[7px] text-[0.55rem] text-muted-foreground">
         {years.map((y, i) => (
           <div key={y} className="flex w-0 justify-center">
@@ -182,6 +213,64 @@ export function TimeRangeSlider() {
             )}
           </div>
         ))}
+=======
+      <div className="mt-1 flex select-none items-center justify-between">
+        <div className="flex w-0 justify-center px-[7px] text-[0.55rem] text-muted-foreground">
+          {years.map((y, i) => (
+            <div key={y} className="flex w-0 justify-center">
+              {i === 0 || i === years.length - 1 ? (
+                <span
+                  className={cn(
+                    'whitespace-nowrap',
+                    y > (historicalYears[historicalYears.length - 1] ?? 0) &&
+                      'text-orange-500',
+                  )}
+                >
+                  {y}
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    'h-1.5 w-px',
+                    y > (historicalYears[historicalYears.length - 1] ?? 0)
+                      ? 'bg-orange-400/50'
+                      : 'bg-muted-foreground/30',
+                  )}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Forecast toggle */}
+      <div className="mt-1.5 flex items-center justify-end">
+        <button
+          onClick={toggleForecast}
+          className={cn(
+            'flex items-center gap-1 rounded-md px-2 py-0.5 text-[0.55rem] font-medium transition-colors',
+            state.subToggles.forecastMode
+              ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+          )}
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 16 16"
+            fill="none"
+            className={cn(state.subToggles.forecastMode && 'animate-pulse')}
+          >
+            <path
+              d="M8 2L14 8L8 14L2 8L8 2Z"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              fill="none"
+            />
+          </svg>
+          Predictive Forecast
+        </button>
+>>>>>>> 32296c2 (your commit message)
       </div>
     </div>
   )

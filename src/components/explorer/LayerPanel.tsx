@@ -95,10 +95,12 @@ export function LayerPanel() {
           <span className="text-[0.8rem] font-semibold tracking-tight text-foreground">
             Layers
           </span>
-          <span className={cn(
-            'flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-bold tabular-nums text-primary transition-opacity duration-150',
-            activeCount > 0 ? 'opacity-100' : 'opacity-0',
-          )}>
+          <span
+            className={cn(
+              'flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-bold tabular-nums text-primary transition-opacity duration-150',
+              activeCount > 0 ? 'opacity-100' : 'opacity-0',
+            )}
+          >
             {activeCount || 0}
           </span>
         </div>
