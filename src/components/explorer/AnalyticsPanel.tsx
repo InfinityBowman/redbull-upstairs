@@ -14,6 +14,7 @@ import type { LayerToggles } from '@/lib/explorer-types'
 interface TabDef {
   key: string
   label: string
+  color?: string
   layer?: keyof LayerToggles
   node: React.ReactNode
 }
@@ -21,15 +22,16 @@ interface TabDef {
 const LAYER_TABS: Array<{
   key: string
   label: string
+  color: string
   layer: keyof LayerToggles
   component: () => React.ReactNode
 }> = [
-  { key: 'complaints', label: '311', layer: 'complaints', component: () => <ComplaintsAnalytics /> },
-  { key: 'crime', label: 'Crime', layer: 'crime', component: () => <CrimeAnalytics /> },
-  { key: 'transit', label: 'Transit', layer: 'transit', component: () => <TransitAnalytics /> },
-  { key: 'vacancy', label: 'Vacancy', layer: 'vacancy', component: () => <VacancyAnalytics /> },
-  { key: 'arpa', label: 'ARPA', layer: 'arpa', component: () => <ArpaAnalytics /> },
-  { key: 'demographics', label: 'Demo', layer: 'demographics', component: () => <DemographicsAnalytics /> },
+  { key: 'complaints', label: '311 Complaints', color: 'text-indigo-400', layer: 'complaints', component: () => <ComplaintsAnalytics /> },
+  { key: 'crime', label: 'Crime', color: 'text-orange-400', layer: 'crime', component: () => <CrimeAnalytics /> },
+  { key: 'transit', label: 'Transit & Equity', color: 'text-blue-400', layer: 'transit', component: () => <TransitAnalytics /> },
+  { key: 'vacancy', label: 'Vacancy Triage', color: 'text-amber-400', layer: 'vacancy', component: () => <VacancyAnalytics /> },
+  { key: 'arpa', label: 'ARPA Funds', color: 'text-emerald-400', layer: 'arpa', component: () => <ArpaAnalytics /> },
+  { key: 'demographics', label: 'Demographics', color: 'text-purple-400', layer: 'demographics', component: () => <DemographicsAnalytics /> },
 ]
 
 export function AnalyticsPanel() {
@@ -46,7 +48,7 @@ export function AnalyticsPanel() {
     const result: Array<TabDef> = []
     for (const lt of LAYER_TABS) {
       if (state.layers[lt.layer]) {
-        result.push({ key: lt.key, label: lt.label, layer: lt.layer, node: lt.component() })
+        result.push({ key: lt.key, label: lt.label, color: lt.color, layer: lt.layer, node: lt.component() })
       }
     }
     result.push({ key: 'chart', label: 'Chart Builder', node: <ChartBuilder /> })
@@ -143,6 +145,7 @@ export function AnalyticsPanel() {
             <TabPill
               key={tab.key}
               active={activeTab === tab.key}
+              activeColor={tab.color}
               onClick={() => setActiveTab(tab.key)}
             >
               {tab.label}
@@ -183,10 +186,12 @@ export function AnalyticsPanel() {
 
 function TabPill({
   active,
+  activeColor,
   onClick,
   children,
 }: {
   active: boolean
+  activeColor?: string
   onClick: () => void
   children: React.ReactNode
 }) {
@@ -195,7 +200,7 @@ function TabPill({
       onClick={onClick}
       className={`shrink-0 rounded-md px-2.5 py-1 text-[0.65rem] font-medium transition-colors ${
         active
-          ? 'bg-accent text-accent-foreground'
+          ? `bg-accent ${activeColor ?? 'text-accent-foreground'}`
           : 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
       }`}
     >

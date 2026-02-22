@@ -3,9 +3,11 @@ import { CategoryBarChart } from './CategoryBarChart'
 export function WeekdayChart({
   weekday,
   height = 300,
+  valueLabel = 'Incidents',
 }: {
   weekday: Record<string, number>
   height?: number
+  valueLabel?: string
 }) {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const pythonOrder = [6, 0, 1, 2, 3, 4, 5]
@@ -14,5 +16,5 @@ export function WeekdayChart({
     value: weekday[String(pythonOrder[i])] || 0,
   }))
 
-  return <CategoryBarChart data={data} horizontal={false} height={height} />
+  return <CategoryBarChart data={data} horizontal={false} height={height} valueLabel={valueLabel} />
 }

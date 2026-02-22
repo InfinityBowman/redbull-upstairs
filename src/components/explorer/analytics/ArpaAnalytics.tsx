@@ -61,8 +61,6 @@ export function ArpaAnalytics() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-xs font-bold text-emerald-400">ARPA Funds</div>
-
       <div className="grid grid-cols-4 gap-2">
         <MiniKpi label="Total Spent" value={fmt(kpis.totalSpent)} />
         <MiniKpi label="Transactions" value={kpis.transactions.toLocaleString()} />
@@ -80,7 +78,7 @@ export function ArpaAnalytics() {
           />
         </div>
         <div className="h-[180px] overflow-hidden">
-          <CategoryBarChart data={categoryChart} horizontal height={180} />
+          <CategoryBarChart data={categoryChart} horizontal height={180} valueLabel="Spent ($K)" />
         </div>
       </div>
 

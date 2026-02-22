@@ -50,8 +50,6 @@ export function ComplaintsAnalytics() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-xs font-bold text-indigo-400">311 Complaints</div>
-
       {/* KPIs — 4 across */}
       <div className="grid grid-cols-4 gap-2">
         <MiniKpi label="Total" value={kpis.totalRequests.toLocaleString()} />
@@ -71,7 +69,7 @@ export function ComplaintsAnalytics() {
           />
         </div>
         <div className="h-[180px] overflow-hidden">
-          <CategoryBarChart data={categoryChart} horizontal height={180} />
+          <CategoryBarChart data={categoryChart} horizontal height={180} valueLabel="Complaints" />
         </div>
       </div>
 
@@ -81,13 +79,13 @@ export function ComplaintsAnalytics() {
           <div className="mb-1 text-[0.6rem] font-semibold text-muted-foreground">
             By Hour
           </div>
-          <HourlyChart data={data.csbData.hourly} height={160} />
+          <HourlyChart data={data.csbData.hourly} height={160} valueLabel="Complaints" />
         </div>
         <div className="overflow-hidden">
           <div className="mb-1 text-[0.6rem] font-semibold text-muted-foreground">
             By Day
           </div>
-          <WeekdayChart weekday={data.csbData.weekday} height={160} />
+          <WeekdayChart weekday={data.csbData.weekday} height={160} valueLabel="Complaints" />
         </div>
         {weather && (
           <div className="overflow-hidden">

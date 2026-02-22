@@ -53,7 +53,6 @@ export function VacancyAnalytics() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-xs font-bold text-amber-400">Vacancy Triage</div>
       <div className="grid grid-cols-2 gap-2">
         <MiniKpi label="Showing" value={String(filtered.length)} />
         <MiniKpi label="Avg Score" value={String(avgScore)} />

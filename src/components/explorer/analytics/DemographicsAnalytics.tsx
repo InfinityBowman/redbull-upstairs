@@ -59,8 +59,6 @@ export function DemographicsAnalytics() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-xs font-bold text-purple-400">Demographics</div>
-
       <div className="grid grid-cols-4 gap-2">
         <MiniKpi label="Population" value={kpis.population.toLocaleString()} />
         <MiniKpi label="Vacancy Rate" value={`${kpis.vacancyRate}%`} />
@@ -74,7 +72,7 @@ export function DemographicsAnalytics() {
             Most Populated Neighborhoods
           </div>
           <div className="h-[180px] overflow-hidden">
-            <CategoryBarChart data={popChart} horizontal height={180} />
+            <CategoryBarChart data={popChart} horizontal height={180} valueLabel="Population" />
           </div>
         </div>
         <div>
@@ -82,7 +80,7 @@ export function DemographicsAnalytics() {
             Population Change 2010-2020 (%)
           </div>
           <div className="h-[180px] overflow-hidden">
-            <CategoryBarChart data={popChangeChart} horizontal height={180} />
+            <CategoryBarChart data={popChangeChart} horizontal height={180} valueLabel="Change (%)" />
           </div>
         </div>
       </div>

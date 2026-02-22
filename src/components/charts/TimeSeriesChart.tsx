@@ -52,6 +52,7 @@ export function TimeSeriesChart({
             color: 'var(--color-foreground)',
           }}
           labelStyle={{ color: 'var(--color-foreground)' }}
+          formatter={(v: number, name: string) => [v.toLocaleString(), name]}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Bar

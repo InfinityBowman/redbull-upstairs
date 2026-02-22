@@ -14,12 +14,14 @@ interface CategoryBarChartProps {
   data: Array<{ name: string; value: number }>
   horizontal?: boolean
   height?: number
+  valueLabel?: string
 }
 
 export function CategoryBarChart({
   data,
   horizontal = true,
   height = 350,
+  valueLabel = 'Count',
 }: CategoryBarChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -63,8 +65,9 @@ export function CategoryBarChart({
             fontSize: 12,
             color: 'var(--color-foreground)',
           }}
+          formatter={(v: number) => [v.toLocaleString(), valueLabel]}
         />
-        <Bar dataKey="value" radius={[4, 4, 4, 4]}>
+        <Bar dataKey="value" name={valueLabel} radius={[4, 4, 4, 4]}>
           {data.map((_, i) => (
             <Cell
               key={i}

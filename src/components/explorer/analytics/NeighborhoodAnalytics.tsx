@@ -78,7 +78,7 @@ export function NeighborhoodAnalytics({ id }: { id: string }) {
             Top 311 Issues
           </div>
           <div className="h-[140px]">
-            <CategoryBarChart data={catData} horizontal />
+            <CategoryBarChart data={catData} horizontal valueLabel="Complaints" />
           </div>
         </div>
         <div>

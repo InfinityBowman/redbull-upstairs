@@ -55,7 +55,6 @@ export function TransitAnalytics() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-xs font-bold text-blue-400">Transit & Equity</div>
       <div className="grid grid-cols-2 gap-2">
         <MiniKpi
           label="Stops"

@@ -12,6 +12,7 @@ import {
 interface HourlyChartProps {
   data: Record<string, number>
   height?: number
+  valueLabel?: string
 }
 
 const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => {
@@ -21,7 +22,7 @@ const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => {
   return `${h - 12}pm`
 })
 
-export function HourlyChart({ data, height = 300 }: HourlyChartProps) {
+export function HourlyChart({ data, height = 300, valueLabel = 'Incidents' }: HourlyChartProps) {
   const max = Math.max(...Object.values(data), 1)
   const chartData = Array.from({ length: 24 }, (_, h) => ({
     hour: HOUR_LABELS[h],
@@ -47,8 +48,9 @@ export function HourlyChart({ data, height = 300 }: HourlyChartProps) {
             fontSize: 12,
             color: 'var(--color-foreground)',
           }}
+          formatter={(v: number) => [v.toLocaleString(), valueLabel]}
         />
-        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+        <Bar dataKey="value" name={valueLabel} radius={[4, 4, 0, 0]}>
           {chartData.map((d, i) => {
             const ratio = d.value / max
             const fill =

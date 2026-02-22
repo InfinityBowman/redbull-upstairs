@@ -48,8 +48,6 @@ export function CrimeAnalytics() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-xs font-bold text-orange-400">Crime</div>
-
       <div className="grid grid-cols-4 gap-2">
         <MiniKpi label="Total" value={kpis.total.toLocaleString()} />
         <MiniKpi label="Per Day" value={String(kpis.perDay)} />
@@ -67,7 +65,7 @@ export function CrimeAnalytics() {
           />
         </div>
         <div className="h-[180px] overflow-hidden">
-          <CategoryBarChart data={categoryChart} horizontal height={180} />
+          <CategoryBarChart data={categoryChart} horizontal height={180} valueLabel="Incidents" />
         </div>
       </div>
 
@@ -76,13 +74,13 @@ export function CrimeAnalytics() {
           <div className="mb-1 text-[0.6rem] font-semibold text-muted-foreground">
             By Hour
           </div>
-          <HourlyChart data={data.crimeData.hourly} height={160} />
+          <HourlyChart data={data.crimeData.hourly} height={160} valueLabel="Incidents" />
         </div>
         <div className="overflow-hidden">
           <div className="mb-1 text-[0.6rem] font-semibold text-muted-foreground">
             By Day
           </div>
-          <WeekdayChart weekday={data.crimeData.weekday} height={160} />
+          <WeekdayChart weekday={data.crimeData.weekday} height={160} valueLabel="Incidents" />
         </div>
       </div>
     </div>
