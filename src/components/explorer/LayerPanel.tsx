@@ -103,7 +103,7 @@ export function LayerPanel() {
                 }
               }
             }}
-            className="text-[0.6rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-[0.62rem] font-medium text-foreground/55 transition-colors hover:text-foreground"
           >
             Clear all
           </button>
@@ -166,7 +166,7 @@ function LayerCard({
             'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-200',
           )}
           style={{
-            background: isActive ? layer.color : 'var(--color-muted)',
+            background: isActive ? layer.color : 'oklch(from var(--color-foreground) l c h / 0.08)',
           }}
         >
           <HugeiconsIcon
@@ -184,7 +184,7 @@ function LayerCard({
           <div className="text-[0.75rem] font-semibold leading-tight text-foreground">
             {layer.label}
           </div>
-          <div className="mt-0.5 text-[0.6rem] leading-tight text-muted-foreground">
+          <div className="mt-0.5 text-[0.62rem] leading-tight text-foreground/55">
             {layer.desc}
           </div>
         </div>
@@ -204,7 +204,7 @@ function LayerCard({
               'absolute top-[2px] h-[14px] w-[14px] rounded-full shadow-sm transition-all duration-200',
               isActive
                 ? 'left-[16px] bg-white'
-                : 'left-[2px] bg-muted-foreground/60',
+                : 'left-[2px] bg-foreground/30',
             )}
           />
         </div>
@@ -233,7 +233,7 @@ function LayerCard({
 
 function LoadingIndicator() {
   return (
-    <div className="flex items-center gap-2 py-0.5 text-[0.6rem] text-muted-foreground">
+    <div className="flex items-center gap-2 py-0.5 text-[0.62rem] text-foreground/50">
       <div className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-muted-foreground/20 border-t-primary" />
       Loading data&hellip;
     </div>
@@ -284,16 +284,16 @@ function PillToggle({
   onChange: (v: string) => void
 }) {
   return (
-    <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
+    <div className="inline-flex w-fit gap-0.5 rounded-md bg-foreground/[0.07] p-0.5">
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={cn(
-            'rounded-[5px] px-2 py-[3px] text-[0.6rem] font-semibold transition-all duration-150',
+            'rounded-[5px] px-2 py-[3px] text-[0.62rem] font-semibold transition-all duration-150',
             value === opt.value
               ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
+              : 'text-foreground/55 hover:text-foreground',
           )}
         >
           {opt.label}
@@ -320,10 +320,10 @@ function TagButton({
     <button
       onClick={onClick}
       className={cn(
-        'rounded-md px-1.5 py-[3px] text-[0.58rem] font-semibold transition-all duration-150',
+        'rounded-md px-1.5 py-[3px] text-[0.62rem] font-semibold transition-all duration-150',
         isActive
           ? activeClass
-          : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground',
+          : 'bg-foreground/[0.07] text-foreground/65 hover:bg-foreground/[0.12] hover:text-foreground',
       )}
     >
       {label}
@@ -500,7 +500,7 @@ function TransitFilters() {
               </svg>
             )}
           </div>
-          <span className="text-[0.62rem] font-medium text-foreground/70 transition-colors group-hover/sub:text-foreground">
+          <span className="text-[0.62rem] font-medium text-foreground/60 transition-colors group-hover/sub:text-foreground">
             {t.label}
           </span>
           <input
@@ -603,10 +603,10 @@ function VacancyFilters() {
       {/* Score slider */}
       <div className="flex flex-col gap-1 pt-0.5">
         <div className="flex items-center justify-between">
-          <span className="text-[0.58rem] font-medium text-muted-foreground">
+          <span className="text-[0.62rem] font-medium text-foreground/60">
             Min Score
           </span>
-          <span className="rounded bg-muted px-1.5 py-0.5 text-[0.58rem] font-bold tabular-nums text-foreground">
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[0.62rem] font-bold tabular-nums text-foreground">
             {state.subToggles.vacancyMinScore}
           </span>
         </div>
@@ -677,7 +677,7 @@ function FoodAccessFilters() {
               </svg>
             )}
           </div>
-          <span className="text-[0.62rem] font-medium text-foreground/70 transition-colors group-hover/sub:text-foreground">
+          <span className="text-[0.62rem] font-medium text-foreground/60 transition-colors group-hover/sub:text-foreground">
             {t.label}
           </span>
           <input
@@ -733,7 +733,7 @@ function DemographicsFilters() {
 
 function ArpaFilters() {
   return (
-    <div className="flex items-center gap-1.5 text-[0.6rem] text-muted-foreground">
+    <div className="flex items-center gap-1.5 text-[0.62rem] text-foreground/50">
       <div className="h-1 w-1 rounded-full bg-emerald-500/60" />
       Analytics-only layer
     </div>

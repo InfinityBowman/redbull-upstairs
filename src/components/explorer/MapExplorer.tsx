@@ -27,7 +27,7 @@ function ExplorerLayout() {
     >
       <div
         className="overflow-y-auto border-r border-border/60 max-lg:border-r-0 max-lg:border-b max-lg:border-border/60"
-        style={{ gridArea: 'layers' }}
+        style={{ gridArea: 'layers', scrollbarGutter: 'stable' }}
       >
         <LayerPanel />
       </div>
