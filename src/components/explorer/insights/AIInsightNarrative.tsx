@@ -1,7 +1,12 @@
 import { useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { SparklesIcon } from '@hugeicons/core-free-icons'
+import {
+  SparklesIcon,
+  CheckmarkCircle02Icon,
+  AlertDiamondIcon,
+  InformationCircleIcon,
+} from '@hugeicons/core-free-icons'
 
 interface InsightMetric {
   value: number
@@ -249,10 +254,16 @@ export function AIInsightNarrative({
               highlight.type === 'neutral' && 'text-muted-foreground',
             )}
           >
-            <span className="mt-0.5">
-              {highlight.type === 'positive' && '✓'}
-              {highlight.type === 'negative' && '⚠'}
-              {highlight.type === 'neutral' && '•'}
+            <span className="mt-0.5 shrink-0">
+              {highlight.type === 'positive' && (
+                <HugeiconsIcon icon={CheckmarkCircle02Icon} size={12} />
+              )}
+              {highlight.type === 'negative' && (
+                <HugeiconsIcon icon={AlertDiamondIcon} size={12} />
+              )}
+              {highlight.type === 'neutral' && (
+                <HugeiconsIcon icon={InformationCircleIcon} size={12} />
+              )}
             </span>
             <span>{highlight.text}</span>
           </div>

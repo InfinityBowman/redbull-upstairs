@@ -1,11 +1,19 @@
 import { getVoiceById } from '../layers/CommunityVoiceLayer'
 import { cn } from '@/lib/utils'
+import { HugeiconsIcon } from '@hugeicons/react'
+import type { IconSvgElement } from '@hugeicons/react'
+import {
+  ClipboardIcon,
+  BubbleChatIcon,
+  Comment01Icon,
+  CourtHouseIcon,
+} from '@hugeicons/core-free-icons'
 
-const sourceIcons: Record<string, string> = {
-  survey: '📋',
-  social: '💬',
-  forum: '💭',
-  meeting: '🏛️',
+const sourceIcons: Record<string, IconSvgElement> = {
+  survey: ClipboardIcon,
+  social: BubbleChatIcon,
+  forum: Comment01Icon,
+  meeting: CourtHouseIcon,
 }
 
 const topicLabels: Record<string, string> = {
@@ -50,7 +58,7 @@ export function CommunityVoiceDetail({ id }: { id: string }) {
     <div className="flex flex-col gap-3 text-xs">
       {/* Header */}
       <div className="flex items-center gap-2.5">
-        <span className="text-lg">{sourceIcons[voice.source] || '💬'}</span>
+        <HugeiconsIcon icon={sourceIcons[voice.source] || BubbleChatIcon} size={18} />
         <div>
           <div className="text-sm font-bold">{voice.neighborhood}</div>
           <span className="rounded-full bg-pink-500/15 px-2 py-0.5 text-[0.6rem] font-semibold text-pink-600 dark:text-pink-400">

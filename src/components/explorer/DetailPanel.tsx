@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Cancel01Icon,
@@ -7,7 +8,6 @@ import {
   BubbleChatAddIcon,
   AlertDiamondIcon,
   Group01Icon,
-  Search01Icon,
 } from '@hugeicons/core-free-icons'
 import { useExplorer } from './ExplorerProvider'
 import { NeighborhoodDetail } from './detail/NeighborhoodDetail'
@@ -48,160 +48,144 @@ const ENTITY_CONFIG: Record<
 export function DetailPanel() {
   const { state, dispatch } = useExplorer()
 
-  const config = state.selected
-    ? ENTITY_CONFIG[state.selected.type]
+  // Cache last selected value so content stays visible during close animation
+  const cachedSelected = useRef(state.selected)
+  if (state.selected) {
+    cachedSelected.current = state.selected
+  }
+  const displaySelected = state.detailPanelOpen
+    ? (state.selected ?? cachedSelected.current)
+    : cachedSelected.current
+
+  const config = displaySelected
+    ? ENTITY_CONFIG[displaySelected.type]
     : undefined
 
-  const isNeighborhood =
-    state.selected?.type === 'neighborhood' || state.compareMode
-  const showCompare = isNeighborhood || (!state.selected && !state.compareMode)
+  if (state.compareMode) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="border-b border-border/60">
+          <div
+            className="h-[3px]"
+            style={{ background: ENTITY_CONFIG.neighborhood.color }}
+          />
+          <div className="flex items-center gap-2.5 px-4 py-2.5">
+            <div
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+              style={{ background: ENTITY_CONFIG.neighborhood.color }}
+            >
+              <HugeiconsIcon
+                icon={ENTITY_CONFIG.neighborhood.icon}
+                strokeWidth={2}
+                className="size-3 text-white"
+              />
+            </div>
+            <span className="text-[0.7rem] font-semibold text-foreground">
+              Neighborhood
+            </span>
+            <div className="flex-1" />
+            <button
+              onClick={() => dispatch({ type: 'TOGGLE_COMPARE_MODE' })}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <HugeiconsIcon
+                icon={Cancel01Icon}
+                strokeWidth={2}
+                className="size-3.5"
+              />
+            </button>
+          </div>
+          <div className="flex items-center justify-between border-t border-border/40 px-4 py-2">
+            <span className="text-[0.62rem] font-medium text-muted-foreground">
+              Compare mode
+            </span>
+            <Switch
+              checked={state.compareMode}
+              onCheckedChange={() =>
+                dispatch({ type: 'TOGGLE_COMPARE_MODE' })
+              }
+            />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <NeighborhoodComparePanel
+            neighborhoodA={state.compareNeighborhoodA}
+            neighborhoodB={state.compareNeighborhoodB}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (!displaySelected || !config) return null
 
   return (
     <div className="flex h-full flex-col">
-      {state.compareMode ? (
-        <>
-          {/* Neighborhood header with compare toggle */}
-          <div className="border-b border-border/60">
-            <div
-              className="h-[3px]"
-              style={{ background: ENTITY_CONFIG.neighborhood.color }}
-            />
-            <div className="flex items-center gap-2.5 px-4 py-2.5">
-              <div
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
-                style={{ background: ENTITY_CONFIG.neighborhood.color }}
-              >
-                <HugeiconsIcon
-                  icon={ENTITY_CONFIG.neighborhood.icon}
-                  strokeWidth={2}
-                  className="size-3 text-white"
-                />
-              </div>
-              <span className="text-[0.7rem] font-semibold text-foreground">
-                Neighborhood
-              </span>
-              <div className="flex-1" />
-              <button
-                onClick={() => dispatch({ type: 'TOGGLE_COMPARE_MODE' })}
-                className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <HugeiconsIcon
-                  icon={Cancel01Icon}
-                  strokeWidth={2}
-                  className="size-3.5"
-                />
-              </button>
-            </div>
-            <div className="flex items-center justify-between border-t border-border/40 px-4 py-2">
-              <span className="text-[0.62rem] font-medium text-muted-foreground">
-                Compare mode
-              </span>
-              <Switch
-                checked={state.compareMode}
-                onCheckedChange={() =>
-                  dispatch({ type: 'TOGGLE_COMPARE_MODE' })
-                }
-              />
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            <NeighborhoodComparePanel
-              neighborhoodA={state.compareNeighborhoodA}
-              neighborhoodB={state.compareNeighborhoodB}
-            />
-          </div>
-        </>
-      ) : state.selected && config ? (
-        <>
-          {/* Entity header */}
-          <div className="border-b border-border/60">
-            <div
-              className="h-[3px]"
-              style={{ background: config.color }}
-            />
-            <div className="flex items-center gap-2.5 px-4 py-2.5">
-              <div
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
-                style={{ background: config.color }}
-              >
-                <HugeiconsIcon
-                  icon={config.icon}
-                  strokeWidth={2}
-                  className="size-3 text-white"
-                />
-              </div>
-              <span className="text-[0.7rem] font-semibold text-foreground">
-                {config.label}
-              </span>
-              <div className="flex-1" />
-              <button
-                onClick={() => dispatch({ type: 'CLEAR_SELECTION' })}
-                className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <HugeiconsIcon
-                  icon={Cancel01Icon}
-                  strokeWidth={2}
-                  className="size-3.5"
-                />
-              </button>
-            </div>
-            {/* Compare toggle - only for neighborhoods */}
-            {state.selected.type === 'neighborhood' && (
-              <div className="flex items-center justify-between border-t border-border/40 px-4 py-2">
-                <span className="text-[0.62rem] font-medium text-muted-foreground">
-                  Compare neighborhoods
-                </span>
-                <Switch
-                  checked={state.compareMode}
-                  onCheckedChange={() =>
-                    dispatch({ type: 'TOGGLE_COMPARE_MODE' })
-                  }
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Detail content */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {state.selected.type === 'neighborhood' && (
-              <NeighborhoodDetail id={state.selected.id} />
-            )}
-            {state.selected.type === 'vacancy' && (
-              <VacancyDetail id={state.selected.id} />
-            )}
-            {state.selected.type === 'stop' && (
-              <StopDetail id={state.selected.id} />
-            )}
-            {state.selected.type === 'grocery' && (
-              <GroceryDetail id={state.selected.id} />
-            )}
-            {state.selected.type === 'foodDesert' && (
-              <FoodDesertDetail id={state.selected.id} />
-            )}
-            {state.selected.type === 'communityVoice' && (
-              <CommunityVoiceDetail id={state.selected.id} />
-            )}
-          </div>
-        </>
-      ) : (
-        <div className="flex h-full flex-col items-center justify-center gap-3 p-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+      {/* Entity header */}
+      <div className="border-b border-border/60">
+        <div className="h-[3px]" style={{ background: config.color }} />
+        <div className="flex items-center gap-2.5 px-4 py-2.5">
+          <div
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+            style={{ background: config.color }}
+          >
             <HugeiconsIcon
-              icon={Search01Icon}
-              strokeWidth={1.5}
-              className="size-4.5 text-muted-foreground"
+              icon={config.icon}
+              strokeWidth={2}
+              className="size-3 text-white"
             />
           </div>
-          <div className="text-center">
-            <div className="text-xs font-medium text-muted-foreground">
-              No selection
-            </div>
-            <div className="mt-0.5 text-[0.62rem] leading-relaxed text-muted-foreground/70">
-              Click any feature on the map to view its details
-            </div>
-          </div>
+          <span className="text-[0.7rem] font-semibold text-foreground">
+            {config.label}
+          </span>
+          <div className="flex-1" />
+          <button
+            onClick={() => dispatch({ type: 'CLEAR_SELECTION' })}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <HugeiconsIcon
+              icon={Cancel01Icon}
+              strokeWidth={2}
+              className="size-3.5"
+            />
+          </button>
         </div>
-      )}
+        {displaySelected.type === 'neighborhood' && (
+          <div className="flex items-center justify-between border-t border-border/40 px-4 py-2">
+            <span className="text-[0.62rem] font-medium text-muted-foreground">
+              Compare neighborhoods
+            </span>
+            <Switch
+              checked={state.compareMode}
+              onCheckedChange={() =>
+                dispatch({ type: 'TOGGLE_COMPARE_MODE' })
+              }
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Detail content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {displaySelected.type === 'neighborhood' && (
+          <NeighborhoodDetail id={displaySelected.id} />
+        )}
+        {displaySelected.type === 'vacancy' && (
+          <VacancyDetail id={displaySelected.id} />
+        )}
+        {displaySelected.type === 'stop' && (
+          <StopDetail id={displaySelected.id} />
+        )}
+        {displaySelected.type === 'grocery' && (
+          <GroceryDetail id={displaySelected.id} />
+        )}
+        {displaySelected.type === 'foodDesert' && (
+          <FoodDesertDetail id={displaySelected.id} />
+        )}
+        {displaySelected.type === 'communityVoice' && (
+          <CommunityVoiceDetail id={displaySelected.id} />
+        )}
+      </div>
     </div>
   )
 }

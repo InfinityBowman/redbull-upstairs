@@ -13,17 +13,14 @@ function ExplorerLayout() {
   return (
     <div
       className={cn(
-        'grid h-full w-full transition-[grid-template-columns] duration-300',
-        state.detailPanelOpen
-          ? 'grid-cols-[280px_1fr_380px]'
-          : 'grid-cols-[280px_1fr_0px]',
-        'grid-rows-[1fr_auto]',
+        'grid h-full w-full',
+        'grid-cols-[280px_1fr] grid-rows-[1fr_auto]',
         'max-lg:grid-cols-1 max-lg:grid-rows-[auto_50vh_auto_auto]',
       )}
       style={{
         gridTemplateAreas: `
-          "layers map detail"
-          "analytics analytics analytics"
+          "layers map"
+          "analytics analytics"
         `,
       }}
     >
@@ -34,26 +31,24 @@ function ExplorerLayout() {
         <LayerPanel />
       </div>
 
-      <div className="relative min-h-0" style={{ gridArea: 'map' }}>
+      <div className="relative min-h-0 overflow-hidden" style={{ gridArea: 'map' }}>
         <ExplorerMap />
+
+        {/* Detail panel — always mounted, slides via transform */}
+        <div
+          className={cn(
+            'absolute inset-y-0 right-0 z-10 w-[380px] border-l border-border/60 bg-background shadow-lg transition-transform duration-150 ease-out will-change-transform',
+            'max-lg:relative max-lg:inset-auto max-lg:w-full max-lg:border-l-0 max-lg:border-t max-lg:shadow-none',
+            state.detailPanelOpen
+              ? 'translate-x-0'
+              : 'translate-x-full max-lg:hidden',
+          )}
+        >
+          <DetailPanel />
+        </div>
       </div>
 
-      <div
-        className={cn(
-          'overflow-y-auto transition-all duration-300 max-lg:border-l-0 max-lg:border-t max-lg:border-border/60',
-          state.detailPanelOpen
-            ? 'border-l border-border/60'
-            : 'max-lg:hidden',
-        )}
-        style={{ gridArea: 'detail' }}
-      >
-        <DetailPanel />
-      </div>
-
-      <div
-        className=""
-        style={{ gridArea: 'analytics' }}
-      >
+      <div style={{ gridArea: 'analytics' }}>
         <AnalyticsPanel />
       </div>
     </div>
