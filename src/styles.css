@@ -234,6 +234,13 @@ body::before {
   background: oklch(0.6 0.01 260 / 0.4);
 }
 
+/* Overlay scrollbar — uses standard props to override ::-webkit-scrollbar,
+   preserving native overlay behavior (no layout shift on macOS) */
+.overlay-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.7 0.01 260 / 0.3) transparent;
+}
+
 /* Table row hover effect */
 table tbody tr {
   transition: background-color 0.15s ease;

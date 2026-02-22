@@ -36,6 +36,12 @@ export function CommandBar() {
   const [, chartDispatch] = useChartBuilder()
   const { messages, isStreaming, sendMessage, toolCalls } = useChat()
 
+  // Refs for values needed in tool execution (avoids re-running effect on state changes)
+  const stateRef = useRef(state)
+  stateRef.current = state
+  const dataRef = useRef(data)
+  dataRef.current = data
+
   // Global keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -70,21 +76,21 @@ export function CommandBar() {
     }
   }, [messages])
 
-  // Execute tool calls when they arrive
+  // Execute tool calls when they arrive (only re-run when toolCalls changes)
   useEffect(() => {
     if (toolCalls.length === 0) return
     const results: Array<ActionResult> = []
     for (const tc of toolCalls) {
       const result = executeToolCall(tc, {
-        state,
+        state: stateRef.current,
         dispatch,
         chartDispatch,
-        data,
+        data: dataRef.current,
       })
       results.push(result)
     }
     setActionResults(results)
-  }, [toolCalls, state, dispatch, chartDispatch, data])
+  }, [toolCalls, dispatch, chartDispatch])
 
   const handleSubmit = useCallback(
     async (text?: string) => {
@@ -95,7 +101,7 @@ export function CommandBar() {
       setActionResults([])
 
       const kpiSnapshot = buildKpiSnapshot(state, data)
-      const context = buildSystemPrompt(state, kpiSnapshot)
+      const context = buildSystemPrompt(state, kpiSnapshot, data)
       await sendMessage(query, context)
     },
     [input, isStreaming, state, data, sendMessage],
@@ -180,16 +186,42 @@ export function CommandBar() {
             ))}
 
             {/* Action badges */}
-            {actionResults.length > 0 && (
+            {actionResults.some((r) => r.description) && (
               <div className="flex flex-wrap gap-1.5">
-                {actionResults.map((r, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center rounded-full bg-accent/60 px-2 py-0.5 text-[0.6rem] font-medium text-accent-foreground"
-                  >
-                    {r.description}
-                  </span>
-                ))}
+                {actionResults
+                  .filter((r) => r.description)
+                  .map((r, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center rounded-full bg-accent/60 px-2 py-0.5 text-[0.6rem] font-medium text-accent-foreground"
+                    >
+                      {r.description}
+                    </span>
+                  ))}
+              </div>
+            )}
+
+            {/* Follow-up quick actions */}
+            {!isStreaming && messages.length > 0 && messages.at(-1)?.role === 'assistant' && (
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => handleSubmit('Chart this data for me')}
+                  className="rounded-md border border-border/40 px-2 py-1 text-[0.6rem] font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+                >
+                  Chart this
+                </button>
+                <button
+                  onClick={() => handleSubmit('Tell me more details')}
+                  className="rounded-md border border-border/40 px-2 py-1 text-[0.6rem] font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+                >
+                  Tell me more
+                </button>
+                <button
+                  onClick={() => handleSubmit('Which neighborhoods are most affected?')}
+                  className="rounded-md border border-border/40 px-2 py-1 text-[0.6rem] font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+                >
+                  By neighborhood
+                </button>
               </div>
             )}
           </>

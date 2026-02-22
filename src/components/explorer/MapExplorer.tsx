@@ -28,7 +28,7 @@ function ExplorerLayout() {
       }}
     >
       <div
-        className="overflow-y-scroll border-r border-border/60 max-lg:border-r-0 max-lg:border-b max-lg:border-border/60"
+        className="overlay-scroll overflow-y-auto border-r border-border/60 max-lg:border-r-0 max-lg:border-b max-lg:border-border/60"
         style={{ gridArea: 'layers' }}
       >
         <LayerPanel />
@@ -51,7 +51,7 @@ function ExplorerLayout() {
       </div>
 
       <div
-        className="border-t border-border/60"
+        className=""
         style={{ gridArea: 'analytics' }}
       >
         <AnalyticsPanel />

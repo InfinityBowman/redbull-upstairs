@@ -79,6 +79,7 @@ function explorerReducer(
 const ExplorerContext = createContext<{
   state: ExplorerState
   dispatch: React.Dispatch<ExplorerAction>
+  loadLayerData: (layer: keyof LayerToggles) => void
 } | null>(null)
 
 const DataContext = createContext<ExplorerData | null>(null)
@@ -228,6 +229,25 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Prefetch all layer datasets in background after base data loads
+  useEffect(() => {
+    const allLayers: Array<keyof LayerToggles> = [
+      'complaints',
+      'transit',
+      'vacancy',
+      'foodAccess',
+      'crime',
+      'arpa',
+      'demographics',
+    ]
+    const prefetch = () => allLayers.forEach((l) => loadLayerData(l))
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(prefetch)
+    } else {
+      setTimeout(prefetch, 200)
+    }
+  }, [loadLayerData])
+
   // Trigger lazy loads when layers are toggled on
   useEffect(() => {
     ;(Object.keys(state.layers) as Array<keyof LayerToggles>).forEach(
@@ -263,7 +283,7 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
   }, [state.compareNeighborhoodA, state.compareNeighborhoodB, loadLayerData])
 
   return (
-    <ExplorerContext.Provider value={{ state, dispatch }}>
+    <ExplorerContext.Provider value={{ state, dispatch, loadLayerData }}>
       <DataContext.Provider value={data}>{children}</DataContext.Provider>
     </ExplorerContext.Provider>
   )

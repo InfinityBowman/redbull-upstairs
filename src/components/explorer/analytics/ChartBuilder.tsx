@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 
 export function ChartBuilder() {
-  const { state: explorerState } = useExplorer()
+  const { loadLayerData } = useExplorer()
   const data = useData()
   const [state, dispatch] = useChartBuilder()
 
@@ -38,15 +38,11 @@ export function ChartBuilder() {
     [currentDef, data],
   )
 
-  // Check if required layers are enabled
-  const missingLayers = useMemo(() => {
-    if (!currentDef) return []
-    return currentDef.requiredLayers.filter((l) => !explorerState.layers[l])
-  }, [currentDef, explorerState.layers])
-
   const handleDatasetChange = (key: string) => {
     const def = getDataset(key)
     if (!def) return
+    // Ensure data is loaded for this dataset (safety net — prefetch usually handles it)
+    def.requiredLayers.forEach((l) => loadLayerData(l))
     const fields = getDatasetFields(def, data)
     dispatch({ type: 'SET_DATASET', datasetKey: key, fields, def })
   }
@@ -93,30 +89,15 @@ export function ChartBuilder() {
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                {datasets.map((d) => {
-                  const disabled = d.requiredLayers.some(
-                    (l) => !explorerState.layers[l],
-                  )
-                  return (
-                    <button
-                      key={d.key}
-                      onClick={() => !disabled && handleDatasetChange(d.key)}
-                      disabled={disabled}
-                      className={`rounded-md px-2.5 py-1.5 text-left text-xs transition-colors ${
-                        disabled
-                          ? 'cursor-not-allowed text-muted-foreground/50'
-                          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                      }`}
-                    >
-                      <span className="font-medium">{d.label}</span>
-                      {disabled && (
-                        <span className="ml-1.5 text-[0.6rem] opacity-60">
-                          (enable layer)
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
+                {datasets.map((d) => (
+                  <button
+                    key={d.key}
+                    onClick={() => handleDatasetChange(d.key)}
+                    className="rounded-md px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+                  >
+                    <span className="font-medium">{d.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           ))}
@@ -181,53 +162,38 @@ export function ChartBuilder() {
         )}
       </div>
 
-      {/* Missing layers warning */}
-      {missingLayers.length > 0 && (
-        <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-          Enable the{' '}
-          <span className="font-semibold text-foreground">
-            {missingLayers.join(', ')}
-          </span>{' '}
-          layer to load this dataset
-        </div>
-      )}
-
       {/* Controls + Chart */}
-      {missingLayers.length === 0 && (
-        <>
-          {chartData ? (
-            <div className="flex flex-col gap-4">
-              <ChartControls
-                xAxisField={state.xAxisField}
-                series={state.series}
-                allFields={allFields}
-                onSetXAxis={(field) =>
-                  dispatch({ type: 'SET_X_AXIS', field })
-                }
-                onAddSeries={(field) =>
-                  dispatch({ type: 'ADD_SERIES', field })
-                }
-                onRemoveSeries={(id) =>
-                  dispatch({ type: 'REMOVE_SERIES', id })
-                }
-                onUpdateSeries={(id, changes) =>
-                  dispatch({ type: 'UPDATE_SERIES', id, changes })
-                }
-              />
-              <ChartCanvas
-                data={chartData}
-                xAxisField={state.xAxisField}
-                series={state.series}
-                title={currentDef?.label}
-                height={300}
-              />
-            </div>
-          ) : (
-            <div className="flex h-[120px] items-center justify-center text-xs text-muted-foreground">
-              Loading data...
-            </div>
-          )}
-        </>
+      {chartData ? (
+        <div className="flex flex-col gap-4">
+          <ChartControls
+            xAxisField={state.xAxisField}
+            series={state.series}
+            allFields={allFields}
+            onSetXAxis={(field) =>
+              dispatch({ type: 'SET_X_AXIS', field })
+            }
+            onAddSeries={(field) =>
+              dispatch({ type: 'ADD_SERIES', field })
+            }
+            onRemoveSeries={(id) =>
+              dispatch({ type: 'REMOVE_SERIES', id })
+            }
+            onUpdateSeries={(id, changes) =>
+              dispatch({ type: 'UPDATE_SERIES', id, changes })
+            }
+          />
+          <ChartCanvas
+            data={chartData}
+            xAxisField={state.xAxisField}
+            series={state.series}
+            title={currentDef?.label}
+            height={300}
+          />
+        </div>
+      ) : (
+        <div className="flex h-[120px] items-center justify-center text-xs text-muted-foreground">
+          Loading data...
+        </div>
       )}
     </div>
   )

@@ -1,4 +1,4 @@
-import type { ExplorerState } from '@/lib/explorer-types'
+import type { ExplorerData, ExplorerState } from '@/lib/explorer-types'
 
 // Neighborhood list for the LLM to reference (name → NHD_NUM)
 const NEIGHBORHOOD_LIST = `
@@ -24,7 +24,7 @@ const NEIGHBORHOOD_LIST = `
 78:North Riverfront, 79:Peabody
 `.trim()
 
-export function buildSystemPrompt(state: ExplorerState, kpiSnapshot: string): string {
+export function buildSystemPrompt(state: ExplorerState, kpiSnapshot: string, data?: ExplorerData): string {
   const activeLayers = Object.entries(state.layers)
     .filter(([, v]) => v)
     .map(([k]) => k)
@@ -33,6 +33,25 @@ export function buildSystemPrompt(state: ExplorerState, kpiSnapshot: string): st
   const selectedDesc = state.selected
     ? `${state.selected.type} (id: ${state.selected.id})`
     : 'none'
+
+  // Build dynamic filter values from loaded data
+  const crimeCategories = data?.crimeData
+    ? Object.entries(data.crimeData.categories)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cat]) => cat)
+        .join(', ')
+    : ''
+  const complaintCategories = data?.csbData
+    ? Object.entries(data.csbData.categories)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cat]) => cat)
+        .join(', ')
+    : ''
+  const arpaCategories = data?.arpaData
+    ? Object.keys(data.arpaData.categoryBreakdown)
+        .sort()
+        .join(', ')
+    : ''
 
   return `You are an AI assistant for the STL Urban Analytics dashboard — a cross-dataset urban analytics platform for St. Louis, Missouri.
 
@@ -45,6 +64,7 @@ You help users explore and analyze city data by:
 - Active layers: ${activeLayers || 'none'}
 - Selected entity: ${selectedDesc}
 - Analytics panel: ${state.analyticsPanelExpanded ? 'open' : 'closed'}
+- Current filters: complaintsMode=${state.subToggles.complaintsMode}, complaintsCategory=${state.subToggles.complaintsCategory}, crimeMode=${state.subToggles.crimeMode}, crimeCategory=${state.subToggles.crimeCategory}, demographicsMetric=${state.subToggles.demographicsMetric}
 
 ## Data Snapshot
 ${kpiSnapshot}
@@ -57,6 +77,16 @@ ${kpiSnapshot}
 - foodAccess: Food desert census tracts + grocery stores
 - arpa: ARPA (American Rescue Plan Act) fund expenditures
 - demographics: Census population, housing vacancy, demographic data
+
+## Available Filters (use set_filters tool)
+Use these EXACT values with set_filters. Values are case-sensitive.
+
+**complaintsMode**: "choropleth" or "heatmap"
+**complaintsCategory**: "all"${complaintCategories ? `, ${complaintCategories}` : ''}
+**crimeMode**: "choropleth" or "heatmap"
+**crimeCategory**: "all"${crimeCategories ? `, ${crimeCategories}` : ''}
+**demographicsMetric**: "population", "vacancyRate", "popChange"
+**arpaCategory**: "all"${arpaCategories ? `, ${arpaCategories}` : ''}
 
 ## Neighborhoods
 St. Louis has 79 neighborhoods. Use select_neighborhood with the name:
@@ -72,10 +102,13 @@ Available dataset keys for configure_chart:
 - food-desert-tracts
 
 ## Instructions
+- ALWAYS respond with a natural language answer first, then use tools to take actions. Never respond with ONLY tool calls and no text.
+- When asked a data question (e.g. "which neighborhood has the most crime?"), ANSWER it with specific numbers from the data snapshot, THEN use tools to visualize it (enable layers, select neighborhoods, configure charts).
 - Use tools to take actions on the dashboard. You can call multiple tools in a single response.
-- When the user asks to "show" or "see" something, enable the relevant layer(s).
+- When the user asks to "show" or "see" something, enable the relevant layer(s) and describe what they'll see.
+- When asked to filter data (e.g. "show only motor vehicle theft", "switch to heatmap"), use set_filters with the exact category values listed above.
 - When asked about a specific neighborhood, select it and provide data from the snapshot.
-- When asked to compare or chart data, use configure_chart to set up the chart builder.
+- When asked to compare, analyze, or chart data, use configure_chart to set up the chart builder. Proactively suggest charting when the answer would benefit from visualization.
 - Keep responses concise (2-4 sentences for simple queries, more for analysis).
 - Reference specific numbers from the data snapshot when available.
 - If you enable a layer, mention that data will load on the map.
