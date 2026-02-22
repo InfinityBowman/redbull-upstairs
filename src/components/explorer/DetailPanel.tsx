@@ -4,6 +4,7 @@ import { VacancyDetail } from './detail/VacancyDetail'
 import { StopDetail } from './detail/StopDetail'
 import { GroceryDetail } from './detail/GroceryDetail'
 import { FoodDesertDetail } from './detail/FoodDesertDetail'
+import { CommunityVoiceDetail } from './detail/CommunityVoiceDetail'
 import { NeighborhoodComparePanel } from './detail/NeighborhoodComparePanel'
 import { Switch } from '@/components/ui/switch'
 
@@ -38,6 +39,7 @@ export function DetailPanel() {
               {state.selected.type === 'stop' && 'Transit Stop'}
               {state.selected.type === 'grocery' && 'Grocery Store'}
               {state.selected.type === 'foodDesert' && 'Food Desert Tract'}
+              {state.selected.type === 'communityVoice' && 'Community Voice'}
             </span>
             <button
               onClick={() => dispatch({ type: 'CLEAR_SELECTION' })}
@@ -61,6 +63,9 @@ export function DetailPanel() {
             )}
             {state.selected.type === 'foodDesert' && (
               <FoodDesertDetail id={state.selected.id} />
+            )}
+            {state.selected.type === 'communityVoice' && (
+              <CommunityVoiceDetail id={state.selected.id} />
             )}
           </div>
         </>

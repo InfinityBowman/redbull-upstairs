@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { useData } from '../ExplorerProvider'
-import type { FoodDesertProperties } from '@/lib/types'
 import { haversine, polygonCentroid } from '@/lib/equity'
 import { generateVacancyData } from '@/lib/vacancy-data'
 import { scoreColor } from '@/lib/colors'
 import { cn } from '@/lib/utils'
+import { AIInsightNarrative } from '../insights/AIInsightNarrative'
 
 export function NeighborhoodDetail({ id }: { id: string }) {
   const data = useData()
@@ -16,7 +16,9 @@ export function NeighborhoodDetail({ id }: { id: string }) {
   )
 
   const centroid: [number, number] = hoodFeature
-    ? polygonCentroid(hoodFeature.geometry.coordinates as Array<Array<Array<number>>>)
+    ? polygonCentroid(
+        hoodFeature.geometry.coordinates as Array<Array<Array<number>>>,
+      )
     : [38.635, -90.245]
 
   const allVacancies = useMemo(() => generateVacancyData(), [])
@@ -68,7 +70,9 @@ export function NeighborhoodDetail({ id }: { id: string }) {
     return data.foodDeserts.features.some((f) => {
       const p = f.properties
       if (!p.lila) return false
-      const tc = polygonCentroid(f.geometry.coordinates as Array<Array<Array<number>>>)
+      const tc = polygonCentroid(
+        f.geometry.coordinates as Array<Array<Array<number>>>,
+      )
       return haversine(centroid[0], centroid[1], tc[0], tc[1]) < 0.5
     })
   }, [data.foodDeserts, centroid])
@@ -124,6 +128,16 @@ export function NeighborhoodDetail({ id }: { id: string }) {
         </div>
         <div className="text-[0.6rem] text-muted-foreground">/100</div>
       </div>
+
+      {/* AI Insights */}
+      <AIInsightNarrative
+        name={hood.name}
+        compositeScore={compositeScore}
+        totalComplaints={hood.total}
+        stopsNearby={nearbyStops.length}
+        nearestGroceryDist={nearestGrocery.dist}
+        vacancyCount={hoodVacancies.length}
+      />
 
       {/* Score bars */}
       <div className="flex flex-col gap-2">

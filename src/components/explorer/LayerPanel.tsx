@@ -8,6 +8,7 @@ import {
   Store01Icon,
   UserGroupIcon,
   DollarCircleIcon,
+  BubbleChatAddIcon,
 } from '@hugeicons/core-free-icons'
 import { useData, useExplorer } from './ExplorerProvider'
 import { Slider } from '@/components/ui/slider'
@@ -167,7 +168,9 @@ function LayerCard({
             'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-200',
           )}
           style={{
-            background: isActive ? layer.color : 'oklch(from var(--color-foreground) l c h / 0.08)',
+            background: isActive
+              ? layer.color
+              : 'oklch(from var(--color-foreground) l c h / 0.08)',
           }}
         >
           <HugeiconsIcon
@@ -203,9 +206,7 @@ function LayerCard({
           <div
             className={cn(
               'absolute top-[2px] h-[14px] w-[14px] rounded-full shadow-sm transition-all duration-200',
-              isActive
-                ? 'left-[16px] bg-white'
-                : 'left-[2px] bg-foreground/30',
+              isActive ? 'left-[16px] bg-white' : 'left-[2px] bg-foreground/30',
             )}
           />
         </div>
@@ -608,17 +609,29 @@ function VacancyFilters() {
             Score Range
           </span>
           <span className="rounded bg-muted px-1.5 py-0.5 text-[0.62rem] font-bold tabular-nums text-foreground">
-            {state.subToggles.vacancyMinScore}–{state.subToggles.vacancyMaxScore}
+            {state.subToggles.vacancyMinScore}–
+            {state.subToggles.vacancyMaxScore}
           </span>
         </div>
         <Slider
           min={0}
           max={100}
           step={1}
-          value={[state.subToggles.vacancyMinScore, state.subToggles.vacancyMaxScore]}
+          value={[
+            state.subToggles.vacancyMinScore,
+            state.subToggles.vacancyMaxScore,
+          ]}
           onValueChange={(values) => {
-            dispatch({ type: 'SET_SUB_TOGGLE', key: 'vacancyMinScore', value: values[0] })
-            dispatch({ type: 'SET_SUB_TOGGLE', key: 'vacancyMaxScore', value: values[1] })
+            dispatch({
+              type: 'SET_SUB_TOGGLE',
+              key: 'vacancyMinScore',
+              value: values[0],
+            })
+            dispatch({
+              type: 'SET_SUB_TOGGLE',
+              key: 'vacancyMaxScore',
+              value: values[1],
+            })
           }}
         />
       </div>

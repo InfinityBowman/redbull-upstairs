@@ -20,6 +20,7 @@ export type SelectedEntity =
   | { type: 'vacancy'; id: number }
   | { type: 'grocery'; id: number }
   | { type: 'foodDesert'; id: string }
+  | { type: 'communityVoice'; id: string }
 
 // ── Layer State ────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ export interface LayerToggles {
   crime: boolean
   arpa: boolean
   demographics: boolean
+  communityVoice: boolean
 }
 
 export interface SubToggles {
@@ -118,6 +120,7 @@ export const initialExplorerState: ExplorerState = {
     crime: false,
     arpa: false,
     demographics: false,
+    communityVoice: false,
   },
   subToggles: {
     complaintsMode: 'choropleth',
