@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 720 200"><rect width="720" height="200" fill="#0f172a" rx="0"/><g transform="matrix(.7 0 0 .7 20 10)"><rect width="256" height="256" fill="#f8fafc" rx="48"/><path stroke="#4f6ef7" stroke-linecap="round" stroke-width="12" d="M56 206C56 86 98 34 128 32c30 2 72 54 72 174"/><rect width="16" height="36" x="76" y="170" fill="#bfcffc" rx="3"/><rect width="16" height="72" x="98" y="134" fill="#7b93f9" rx="3"/><rect width="16" height="96" x="120" y="110" fill="#4f6ef7" rx="3"/><rect width="16" height="56" x="142" y="150" fill="#7b93f9" rx="3"/><rect width="16" height="44" x="164" y="162" fill="#bfcffc" rx="3"/></g><text x="224" y="92" fill="#f1f5f9" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="52" font-weight="700" letter-spacing="-1">
+    STL Urban
+  </text><text x="224" y="148" fill="#7b93f9" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="52" font-weight="700" letter-spacing="-1">
+    Analytics
+  </text><text x="226" y="176" fill="#94a3b8" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="400" letter-spacing="3">
+    CIVIC DATA PLATFORM
+  </text></svg>

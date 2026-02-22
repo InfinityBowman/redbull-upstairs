@@ -18,10 +18,10 @@ import {
   SymbolSection,
 } from '@/components/map/MapLegend'
 import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from '@/components/ui/popover'
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   CHORO_COLORS,
   CRIME_COLORS,
@@ -125,9 +125,9 @@ export function ExplorerMap() {
       }
 
       // 0. Community voice markers (check first - most specific)
-      const voiceFeatures = map
-        .queryRenderedFeatures(point, { layers: ['voice-circles'] })
-        .filter(Boolean)
+      const voiceFeatures = map.getLayer('voice-circles')
+        ? map.queryRenderedFeatures(point, { layers: ['voice-circles'] })
+        : []
       if (voiceFeatures.length > 0) {
         const id = voiceFeatures[0].properties?.id
         if (id) {
@@ -140,9 +140,9 @@ export function ExplorerMap() {
       }
 
       // 1. Check vacancy markers first (most specific points)
-      const vacancyFeatures = map
-        .queryRenderedFeatures(point, { layers: ['vacancy-circles'] })
-        .filter(Boolean)
+      const vacancyFeatures = map.getLayer('vacancy-circles')
+        ? map.queryRenderedFeatures(point, { layers: ['vacancy-circles'] })
+        : []
       if (vacancyFeatures.length > 0) {
         const id = vacancyFeatures[0].properties?.id
         if (id != null) {
@@ -155,9 +155,9 @@ export function ExplorerMap() {
       }
 
       // 2. Transit stops
-      const stopFeatures = map
-        .queryRenderedFeatures(point, { layers: ['stops-circles'] })
-        .filter(Boolean)
+      const stopFeatures = map.getLayer('stops-circles')
+        ? map.queryRenderedFeatures(point, { layers: ['stops-circles'] })
+        : []
       if (stopFeatures.length > 0) {
         const id = stopFeatures[0].properties?.stop_id
         if (id) {
@@ -170,9 +170,9 @@ export function ExplorerMap() {
       }
 
       // 3. Grocery stores
-      const groceryFeatures = map
-        .queryRenderedFeatures(point, { layers: ['grocery-circles'] })
-        .filter(Boolean)
+      const groceryFeatures = map.getLayer('grocery-circles')
+        ? map.queryRenderedFeatures(point, { layers: ['grocery-circles'] })
+        : []
       if (groceryFeatures.length > 0) {
         const idx = groceryFeatures[0].properties?.idx
         if (idx != null) {
@@ -185,9 +185,9 @@ export function ExplorerMap() {
       }
 
       // 4. Food desert tracts
-      const desertFeatures = map
-        .queryRenderedFeatures(point, { layers: ['desert-fill'] })
-        .filter(Boolean)
+      const desertFeatures = map.getLayer('desert-fill')
+        ? map.queryRenderedFeatures(point, { layers: ['desert-fill'] })
+        : []
       if (desertFeatures.length > 0) {
         const tractId = desertFeatures[0].properties?.tract_id
         if (tractId) {
@@ -200,9 +200,9 @@ export function ExplorerMap() {
       }
 
       // 5. Neighborhood polygons (also catches crime/demographics choropleth clicks)
-      const hoodFeatures = map
-        .queryRenderedFeatures(point, { layers: ['neighborhood-base-fill'] })
-        .filter(Boolean)
+      const hoodFeatures = map.getLayer('neighborhood-base-fill')
+        ? map.queryRenderedFeatures(point, { layers: ['neighborhood-base-fill'] })
+        : []
       if (hoodFeatures.length > 0) {
         const nhdNum = hoodFeatures[0].properties?.NHD_NUM
         if (nhdNum != null) {
@@ -232,8 +232,10 @@ export function ExplorerMap() {
     ]
 
     map.on('mousemove', (e) => {
+      const activeLayers = interactiveLayers.filter((l) => map.getLayer(l))
+      if (activeLayers.length === 0) return
       const features = map.queryRenderedFeatures(e.point, {
-        layers: interactiveLayers,
+        layers: activeLayers,
       })
       map.getCanvas().style.cursor = features.length > 0 ? 'pointer' : ''
     })
@@ -310,16 +312,17 @@ export function ExplorerMap() {
                   <span className="font-semibold text-foreground">
                     Vacancy Priority
                   </span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-muted text-[0.55rem] font-bold leading-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="inline-flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full bg-muted text-[0.55rem] font-bold leading-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
                         ?
                       </button>
-                    </PopoverTrigger>
-                    <PopoverContent
+                    </TooltipTrigger>
+                    <TooltipContent
                       side="left"
                       align="start"
-                      className="w-56 text-xs"
+                      className="w-56 rounded-lg bg-popover p-2.5 text-xs text-popover-foreground shadow-md ring-1 ring-foreground/10"
+                      hideArrow
                     >
                       <p className="mb-1.5 font-semibold">
                         How priority is calculated
@@ -370,8 +373,8 @@ export function ExplorerMap() {
                         Colors show percentile rank — each band holds ~20% of
                         properties.
                       </p>
-                    </PopoverContent>
-                  </Popover>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <SwatchSection items={vacancyLegendItems(vacancyBreaks)} />
               </div>

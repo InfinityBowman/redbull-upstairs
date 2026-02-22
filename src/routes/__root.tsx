@@ -6,7 +6,7 @@ import {
   createRootRoute,
 } from '@tanstack/react-router'
 import appCss from '../styles.css?url'
-import { Nav } from '@/components/Nav'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -20,7 +20,13 @@ export const Route = createRootRoute({
           'Unified urban data analytics for St. Louis — 311 Complaints, Transit Equity, Vacancy Triage',
       },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'icon', type: 'image/svg+xml', href: '/urbanslu/icon.svg' },
+      { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/urbanslu/icon_32.png' },
+      { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/urbanslu/icon_16.png' },
+      { rel: 'apple-touch-icon', href: '/urbanslu/apple-touch-icon.png' },
+    ],
   }),
 
   component: RootLayout,
@@ -37,7 +43,7 @@ function NotFound() {
         to="/"
         className="text-sm text-primary underline underline-offset-4 hover:text-primary/80"
       >
-        Back to dashboard
+        Back home
       </Link>
     </div>
   )
@@ -59,11 +65,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function RootLayout() {
   return (
-    <>
-      <Nav />
-      <main>
-        <Outlet />
-      </main>
-    </>
+    <TooltipProvider delayDuration={200}>
+      <Outlet />
+    </TooltipProvider>
   )
 }

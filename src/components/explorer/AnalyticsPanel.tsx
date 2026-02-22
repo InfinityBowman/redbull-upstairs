@@ -110,7 +110,7 @@ export function AnalyticsPanel() {
       {/* Drag handle */}
       <div
         onMouseDown={expanded ? onDragStart : undefined}
-        className="group flex items-center justify-center overflow-hidden border-b border-border/40 hover:bg-accent/30"
+        className={`group flex items-center justify-center overflow-hidden hover:bg-accent/30 `}
         style={{
           height: expanded ? 8 : 0,
           cursor: expanded ? 'row-resize' : undefined,
@@ -130,7 +130,11 @@ export function AnalyticsPanel() {
             ease: 'easeOut',
           })
         }}
-        className="flex w-full items-center justify-between border-b border-border/60 px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent/50"
+        className={`flex w-full items-center justify-between px-4 py-2 text-xs font-semibold transition-colors ${
+          expanded
+            ? 'border-t border-brand/30 border-b border-b-border/60 text-brand'
+            : 'border-t border-brand/20 text-brand-light hover:border-brand/40 hover:text-brand'
+        }`}
       >
         <span className="uppercase tracking-widest">Analytics</span>
         <span className="text-[0.6rem]">

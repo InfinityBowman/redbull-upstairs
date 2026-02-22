@@ -1,8 +1,10 @@
 import { ExplorerProvider, useExplorer } from './ExplorerProvider'
+import { ChartBuilderProvider } from './analytics/chart-builder/useChartBuilder'
 import { ExplorerMap } from './ExplorerMap'
 import { LayerPanel } from './LayerPanel'
 import { DetailPanel } from './DetailPanel'
 import { AnalyticsPanel } from './AnalyticsPanel'
+import { CommandBar } from './CommandBar'
 import { cn } from '@/lib/utils'
 
 function ExplorerLayout() {
@@ -26,8 +28,8 @@ function ExplorerLayout() {
       }}
     >
       <div
-        className="overflow-y-auto border-r border-border/60 max-lg:border-r-0 max-lg:border-b max-lg:border-border/60"
-        style={{ gridArea: 'layers', scrollbarGutter: 'stable' }}
+        className="overlay-scroll overflow-y-auto border-r border-border/60 max-lg:border-r-0 max-lg:border-b max-lg:border-border/60"
+        style={{ gridArea: 'layers' }}
       >
         <LayerPanel />
       </div>
@@ -49,7 +51,7 @@ function ExplorerLayout() {
       </div>
 
       <div
-        className="border-t border-border/60"
+        className=""
         style={{ gridArea: 'analytics' }}
       >
         <AnalyticsPanel />
@@ -61,7 +63,10 @@ function ExplorerLayout() {
 export function MapExplorer() {
   return (
     <ExplorerProvider>
-      <ExplorerLayout />
+      <ChartBuilderProvider>
+        <ExplorerLayout />
+        <CommandBar />
+      </ChartBuilderProvider>
     </ExplorerProvider>
   )
 }

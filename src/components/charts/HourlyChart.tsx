@@ -58,7 +58,7 @@ export function HourlyChart({ data, height = 300, valueLabel = 'Incidents' }: Ho
                 ? '#ef4444aa'
                 : ratio > 0.5
                   ? '#f59e0baa'
-                  : '#6366f1aa'
+                  : '#4f6ef7aa'
             return <Cell key={i} fill={fill} />
           })}
         </Bar>
