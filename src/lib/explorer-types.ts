@@ -71,6 +71,10 @@ export interface ExplorerState {
   compareMode: boolean
   compareNeighborhoodA: string | null
   compareNeighborhoodB: string | null
+  priceMode?: boolean
+  priceYear?: number
+  priceNeighborhoodA?: string | null
+  priceNeighborhoodB?: string | null
 }
 
 // ── Actions ────────────────────────────────────────────────
@@ -92,6 +96,10 @@ export type ExplorerAction =
   | { type: 'TOGGLE_COMPARE_MODE' }
   | { type: 'SET_COMPARE_NEIGHBORHOOD'; slot: 'A' | 'B'; id: string }
   | { type: 'CLEAR_COMPARE_NEIGHBORHOOD'; slot: 'A' | 'B' }
+  | { type: 'TOGGLE_PRICE_MODE' }
+  | { type: 'SET_PRICE_YEAR'; year: number }
+  | { type: 'SET_PRICE_NEIGHBORHOOD'; slot: 'A' | 'B'; id: string }
+  | { type: 'CLEAR_PRICE_NEIGHBORHOOD'; slot: 'A' | 'B' }
 
 // ── Data Context ───────────────────────────────────────────
 

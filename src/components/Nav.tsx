@@ -1,6 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Search01Icon, Group01Icon } from '@hugeicons/core-free-icons'
+import {
+  Search01Icon,
+  Group01Icon,
+  Home03Icon,
+  Location01Icon,
+} from '@hugeicons/core-free-icons'
 import { commandBarEvents } from '@/lib/ai/command-bar-events'
 
 export function Nav() {
@@ -42,12 +47,28 @@ export function Nav() {
             Explorer
           </Link>
           <Link
+            to="/housing"
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[0.8rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            activeProps={{ className: 'text-foreground' }}
+          >
+            <HugeiconsIcon icon={Home03Icon} size={14} strokeWidth={2} />
+            <span className="max-sm:hidden">Housing</span>
+          </Link>
+          <Link
+            to="/affected"
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[0.8rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            activeProps={{ className: 'text-foreground' }}
+          >
+            <HugeiconsIcon icon={Location01Icon} size={14} strokeWidth={2} />
+            <span className="max-sm:hidden">Affected Areas</span>
+          </Link>
+          <Link
             to="/population"
             className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[0.8rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: 'text-foreground' }}
           >
             <HugeiconsIcon icon={Group01Icon} size={14} strokeWidth={2} />
-            <span className="max-sm:hidden">Population Flow</span>
+            <span className="max-sm:hidden">Population</span>
           </Link>
           <Link
             to="/about"
