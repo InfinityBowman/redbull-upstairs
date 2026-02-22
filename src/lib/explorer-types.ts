@@ -55,8 +55,6 @@ export interface SubToggles {
   timeRangeEnd: string
   arpaCategory: string
   demographicsMetric: 'population' | 'vacancyRate' | 'popChange'
-  forecastMode: boolean
-  forecastYear: number
 }
 
 export type MapStyle = 'light' | 'dark' | 'satellite' | 'streets'
@@ -146,8 +144,6 @@ export const initialExplorerState: ExplorerState = {
     timeRangeEnd: '',
     arpaCategory: 'all',
     demographicsMetric: 'population',
-    forecastMode: false,
-    forecastYear: 2026,
   },
   selected: null,
   detailPanelOpen: false,

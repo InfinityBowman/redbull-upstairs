@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  /** Tool call summary — included in API context for follow-ups, not displayed in UI */
+  toolContext?: string
 }
 
 export interface ToolCall {
@@ -30,9 +32,11 @@ export function useChat() {
       setIsStreaming(true)
       setToolCalls([])
 
+      // Include toolContext from previous assistant messages so the AI
+      // knows what dashboard actions were taken in earlier turns
       const allMessages = [...messagesRef.current, userMsg].map((m) => ({
         role: m.role,
-        content: m.content,
+        content: m.toolContext ? `${m.content}\n\n${m.toolContext}` : m.content,
       }))
 
       const collectedTools: Array<ToolCall> = []
@@ -56,7 +60,6 @@ export function useChat() {
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: 'Request failed' }))
           const errMsg = (err as { error?: string }).error ?? 'Request failed'
-          setIsStreaming(false)
           const assistantMsg: ChatMessage = {
             role: 'assistant',
             content: `Error: ${errMsg}`,
@@ -154,20 +157,40 @@ export function useChat() {
         if ((err as Error).name !== 'AbortError') {
           responseText = `Error: ${(err as Error).message}`
         }
+      } finally {
+        setIsStreaming(false)
       }
 
-      // Ensure final assistant message is set
-      if (responseText) {
-        setMessages((prev) => {
-          const last = prev.at(-1)
-          if (last?.role === 'assistant') {
-            return [...prev.slice(0, -1), { ...last, content: responseText }]
-          }
-          return [...prev, { role: 'assistant', content: responseText }]
-        })
+      // Build tool context string for follow-up conversation history
+      const toolContext = collectedTools.length > 0
+        ? `[Dashboard actions taken: ${collectedTools.map((tc) => tc.name).join(', ')}]`
+        : undefined
+
+      // If the AI returned only tool calls with no text, provide a fallback
+      if (!responseText && collectedTools.length > 0) {
+        responseText = 'Done — I\'ve updated the dashboard.'
       }
 
-      setIsStreaming(false)
+      // If the AI returned nothing at all, show a fallback
+      if (!responseText && collectedTools.length === 0) {
+        responseText = 'I wasn\'t able to generate a response. Try rephrasing your question.'
+      }
+
+      // Ensure final assistant message is set (with toolContext for follow-ups)
+      setMessages((prev) => {
+        const last = prev.at(-1)
+        if (last?.role === 'assistant') {
+          return [
+            ...prev.slice(0, -1),
+            { ...last, content: responseText, toolContext },
+          ]
+        }
+        return [
+          ...prev,
+          { role: 'assistant', content: responseText, toolContext },
+        ]
+      })
+
       return { response: responseText, tools: collectedTools }
     },
     [],
