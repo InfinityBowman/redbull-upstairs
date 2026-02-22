@@ -6,6 +6,7 @@ import {
   createRootRoute,
 } from '@tanstack/react-router'
 import appCss from '../styles.css?url'
+import { Nav } from '@/components/Nav'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 export const Route = createRootRoute({
@@ -23,8 +24,18 @@ export const Route = createRootRoute({
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'icon', type: 'image/svg+xml', href: '/urbanslu/icon.svg' },
-      { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/urbanslu/icon_32.png' },
-      { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/urbanslu/icon_16.png' },
+      {
+        rel: 'icon',
+        type: 'image/png',
+        sizes: '32x32',
+        href: '/urbanslu/icon_32.png',
+      },
+      {
+        rel: 'icon',
+        type: 'image/png',
+        sizes: '16x16',
+        href: '/urbanslu/icon_16.png',
+      },
       { rel: 'apple-touch-icon', href: '/urbanslu/apple-touch-icon.png' },
     ],
   }),
@@ -66,7 +77,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 function RootLayout() {
   return (
     <TooltipProvider delayDuration={200}>
-      <Outlet />
+      <Nav />
+      <main>
+        <Outlet />
+      </main>
     </TooltipProvider>
   )
 }

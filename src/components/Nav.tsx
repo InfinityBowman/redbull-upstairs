@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { commandBarEvents } from '@/lib/ai/command-bar-events'
 
 export function Nav() {
   return (

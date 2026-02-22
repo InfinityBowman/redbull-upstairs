@@ -82,10 +82,10 @@ export function NeighborhoodBaseLayer() {
                 matchCompareB,
                 '#f97316',
                 matchExpr,
-                '#6366f1',
+                '#4f6ef7',
                 'rgba(0,0,0,0.12)',
               ]
-            : ['case', matchExpr, '#6366f1', 'rgba(0,0,0,0.12)'],
+            : ['case', matchExpr, '#4f6ef7', 'rgba(0,0,0,0.12)'],
           'line-width': isInCompareMode
             ? ['case', isCompareSelected, 3.5, matchExpr, 2.5, 0.5]
             : ['case', matchExpr, 2.5, 0.5],

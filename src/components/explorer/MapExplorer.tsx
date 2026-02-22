@@ -1,8 +1,10 @@
 import { ExplorerProvider, useExplorer } from './ExplorerProvider'
+import { ChartBuilderProvider } from './analytics/chart-builder/useChartBuilder'
 import { ExplorerMap } from './ExplorerMap'
 import { LayerPanel } from './LayerPanel'
 import { DetailPanel } from './DetailPanel'
 import { AnalyticsPanel } from './AnalyticsPanel'
+import { CommandBar } from './CommandBar'
 import { cn } from '@/lib/utils'
 
 function ExplorerLayout() {
@@ -61,7 +63,10 @@ function ExplorerLayout() {
 export function MapExplorer() {
   return (
     <ExplorerProvider>
-      <ExplorerLayout />
+      <ChartBuilderProvider>
+        <ExplorerLayout />
+        <CommandBar />
+      </ChartBuilderProvider>
     </ExplorerProvider>
   )
 }

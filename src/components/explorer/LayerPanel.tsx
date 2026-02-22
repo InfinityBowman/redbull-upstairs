@@ -26,7 +26,7 @@ const LAYER_CONFIG: Array<{
   {
     key: 'complaints',
     label: '311 Complaints',
-    color: '#6366f1',
+    color: '#4f6ef7',
     desc: 'Complaint density by neighborhood',
     icon: Megaphone01Icon,
   },

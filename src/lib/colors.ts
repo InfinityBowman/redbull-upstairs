@@ -25,7 +25,7 @@ export function dynamicBreaks(values: Array<number>, steps = CHORO_COLORS.length
 
 // Category chart colors
 export const CATEGORY_COLORS = [
-  '#6366f1',
+  '#4f6ef7',
   '#22c55e',
   '#f59e0b',
   '#ef4444',

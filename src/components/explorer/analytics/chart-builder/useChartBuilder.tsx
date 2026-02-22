@@ -1,4 +1,5 @@
-import { useReducer } from 'react'
+import { createContext, useContext, useReducer } from 'react'
+import type { ReactNode } from 'react'
 import { CATEGORY_COLORS } from '@/lib/colors'
 import type { DatasetDef, FieldDef, PresetConfig } from '@/lib/chart-datasets'
 
@@ -20,7 +21,7 @@ export interface ChartBuilderState {
   activePreset: string | null
 }
 
-type ChartBuilderAction =
+export type ChartBuilderAction =
   | { type: 'SET_DATASET'; datasetKey: string; fields: FieldDef[]; def: DatasetDef }
   | { type: 'APPLY_PRESET'; preset: PresetConfig; fields: FieldDef[] }
   | { type: 'SET_X_AXIS'; field: string }
@@ -169,8 +170,26 @@ const initialState: ChartBuilderState = {
   activePreset: null,
 }
 
-export function useChartBuilder() {
-  return useReducer(reducer, initialState)
+// ── Context ──────────────────────────────────────────────
+
+const ChartBuilderContext = createContext<{
+  state: ChartBuilderState
+  dispatch: React.Dispatch<ChartBuilderAction>
+} | null>(null)
+
+export function ChartBuilderProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, initialState)
+  return (
+    <ChartBuilderContext.Provider value={{ state, dispatch }}>
+      {children}
+    </ChartBuilderContext.Provider>
+  )
+}
+
+export function useChartBuilder(): [ChartBuilderState, React.Dispatch<ChartBuilderAction>] {
+  const ctx = useContext(ChartBuilderContext)
+  if (!ctx) throw new Error('useChartBuilder must be used within ChartBuilderProvider')
+  return [ctx.state, ctx.dispatch]
 }
 
 export function getAvailableYFields(

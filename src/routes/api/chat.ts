@@ -1,0 +1,164 @@
+import { createFileRoute } from '@tanstack/react-router'
+import { TOOL_DEFINITIONS } from '@/lib/ai/tools'
+
+export const Route = createFileRoute('/api/chat')({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        const apiKey = process.env.OPENROUTER_API_KEY
+        if (!apiKey) {
+          return new Response(
+            JSON.stringify({ error: 'OPENROUTER_API_KEY not configured' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } },
+          )
+        }
+
+        let body: {
+          messages: Array<{ role: string; content: string }>
+          context: string
+        }
+        try {
+          body = await request.json()
+        } catch {
+          return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+
+        const { messages, context } = body
+
+        const openRouterBody = {
+          model: 'glm-4-plus',
+          stream: true,
+          messages: [{ role: 'system', content: context }, ...messages],
+          tools: TOOL_DEFINITIONS,
+          tool_choice: 'auto',
+        }
+
+        const upstreamRes = await fetch(
+          'https://openrouter.ai/api/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://stl-urban-analytics.pages.dev',
+              'X-Title': 'STL Urban Analytics',
+            },
+            body: JSON.stringify(openRouterBody),
+          },
+        )
+
+        if (!upstreamRes.ok) {
+          const errText = await upstreamRes.text()
+          return new Response(
+            JSON.stringify({
+              error: `OpenRouter error: ${upstreamRes.status}`,
+              detail: errText,
+            }),
+            { status: 502, headers: { 'Content-Type': 'application/json' } },
+          )
+        }
+
+        const encoder = new TextEncoder()
+        const decoder = new TextDecoder()
+
+        const stream = new ReadableStream({
+          async start(controller) {
+            const reader = upstreamRes.body?.getReader()
+            if (!reader) {
+              controller.enqueue(
+                encoder.encode(
+                  `event: error\ndata: ${JSON.stringify({ error: 'No response body' })}\n\n`,
+                ),
+              )
+              controller.enqueue(encoder.encode('event: done\ndata: {}\n\n'))
+              controller.close()
+              return
+            }
+
+            let buffer = ''
+
+            try {
+              for (;;) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                buffer += decoder.decode(value, { stream: true })
+                const lines = buffer.split('\n')
+                buffer = lines.pop() ?? ''
+
+                for (const line of lines) {
+                  const trimmed = line.trim()
+                  if (!trimmed || !trimmed.startsWith('data: ')) continue
+                  const data = trimmed.slice(6)
+                  if (data === '[DONE]') continue
+
+                  try {
+                    const chunk = JSON.parse(data)
+                    const delta = chunk.choices?.[0]?.delta
+                    if (!delta) continue
+
+                    if (delta.tool_calls) {
+                      for (const tc of delta.tool_calls) {
+                        if (tc.function?.name) {
+                          controller.enqueue(
+                            encoder.encode(
+                              `event: tool_call_start\ndata: ${JSON.stringify({
+                                index: tc.index,
+                                id: tc.id,
+                                name: tc.function.name,
+                                arguments: tc.function.arguments ?? '',
+                              })}\n\n`,
+                            ),
+                          )
+                        } else if (tc.function?.arguments) {
+                          controller.enqueue(
+                            encoder.encode(
+                              `event: tool_call_chunk\ndata: ${JSON.stringify({
+                                index: tc.index,
+                                arguments: tc.function.arguments,
+                              })}\n\n`,
+                            ),
+                          )
+                        }
+                      }
+                    }
+
+                    if (delta.content) {
+                      controller.enqueue(
+                        encoder.encode(
+                          `event: text\ndata: ${JSON.stringify({ content: delta.content })}\n\n`,
+                        ),
+                      )
+                    }
+                  } catch {
+                    // Skip malformed JSON lines
+                  }
+                }
+              }
+            } catch (err) {
+              controller.enqueue(
+                encoder.encode(
+                  `event: error\ndata: ${JSON.stringify({ error: String(err) })}\n\n`,
+                ),
+              )
+            }
+
+            controller.enqueue(encoder.encode('event: done\ndata: {}\n\n'))
+            controller.close()
+          },
+        })
+
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          },
+        })
+      },
+    },
+  },
+})
