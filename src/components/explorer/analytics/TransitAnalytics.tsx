@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
-import { useData } from '../ExplorerProvider'
+import { useData, useFailedDatasets } from '../ExplorerProvider'
+import { MiniKpi } from './MiniKpi'
+import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
 import type { FoodDesertProperties } from '@/lib/types'
 import { computeEquityGaps } from '@/lib/equity'
 import { equitySeverity } from '@/lib/colors'
@@ -7,6 +9,7 @@ import { cn } from '@/lib/utils'
 
 export function TransitAnalytics() {
   const data = useData()
+  const failed = useFailedDatasets()
 
   const gapResults = useMemo(() => {
     if (
@@ -32,20 +35,69 @@ export function TransitAnalytics() {
     [data.foodDeserts],
   )
 
-  const totalPop = desertTracts.reduce(
-    (s, f) => s + ((f.properties).pop || 0),
-    0,
+  const totalPop = useMemo(
+    () =>
+      desertTracts.reduce(
+        (s, f) => s + ((f.properties).pop || 0),
+        0,
+      ),
+    [desertTracts],
   )
 
-  const worstTracts = gapResults.filter((g) => g.score < 30)
-  const noAccessTracts = gapResults.filter((g) => !g.groceryAccessible)
-  const avgScore = gapResults.length
-    ? Math.round(
-        gapResults.reduce((s, g) => s + g.score, 0) / gapResults.length,
-      )
-    : 0
+  const worstTracts = useMemo(
+    () => gapResults.filter((g) => g.score < 30),
+    [gapResults],
+  )
+  const noAccessTracts = useMemo(
+    () => gapResults.filter((g) => !g.groceryAccessible),
+    [gapResults],
+  )
+  const avgScore = useMemo(
+    () =>
+      gapResults.length
+        ? Math.round(
+            gapResults.reduce((s, g) => s + g.score, 0) / gapResults.length,
+          )
+        : 0,
+    [gapResults],
+  )
 
-  if (!data.stops || !data.routes) {
+  const scoreDistChart = useMemo(() => {
+    if (!gapResults.length) return []
+    const buckets = [
+      { label: '0-19', min: 0, max: 19 },
+      { label: '20-39', min: 20, max: 39 },
+      { label: '40-59', min: 40, max: 59 },
+      { label: '60-79', min: 60, max: 79 },
+      { label: '80-100', min: 80, max: 100 },
+    ]
+    return buckets.map((b) => ({
+      name: b.label,
+      value: gapResults.filter((g) => g.score >= b.min && g.score <= b.max)
+        .length,
+    }))
+  }, [gapResults])
+
+  const topDesertPopChart = useMemo(() => {
+    if (!desertTracts.length) return []
+    return desertTracts
+      .map((f) => {
+        const props = f.properties as FoodDesertProperties
+        return {
+          name: props.name || props.tract_id || 'Unknown',
+          value: props.pop || 0,
+        }
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8)
+  }, [desertTracts])
+
+  if (!data.stops || !data.routes || !data.foodDeserts || !data.stopStats) {
+    if (failed.has('transit') || failed.has('foodAccess')) {
+      return (
+        <div className="text-xs text-muted-foreground">Transit data unavailable.</div>
+      )
+    }
     return (
       <div className="text-xs text-muted-foreground">
         Loading transit data...
@@ -55,7 +107,7 @@ export function TransitAnalytics() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         <MiniKpi
           label="Stops"
           value={data.stops.features.length.toLocaleString()}
@@ -81,6 +133,35 @@ export function TransitAnalytics() {
           .
         </div>
       )}
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div>
+          <div className="mb-1 text-[0.6rem] font-semibold text-muted-foreground">
+            Equity Score Distribution
+          </div>
+          <div className="h-[180px] overflow-hidden">
+            <CategoryBarChart
+              data={scoreDistChart}
+              horizontal={false}
+              height={180}
+              valueLabel="Tracts"
+            />
+          </div>
+        </div>
+        <div>
+          <div className="mb-1 text-[0.6rem] font-semibold text-muted-foreground">
+            Top Tracts by Desert Population
+          </div>
+          <div className="h-[180px] overflow-hidden">
+            <CategoryBarChart
+              data={topDesertPopChart}
+              horizontal
+              height={180}
+              valueLabel="Population"
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="flex max-h-[150px] flex-col gap-1.5 overflow-y-auto">
         {gapResults.slice(0, 8).map((g) => {
@@ -120,17 +201,6 @@ export function TransitAnalytics() {
           )
         })}
       </div>
-    </div>
-  )
-}
-
-function MiniKpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-muted px-2.5 py-1.5">
-      <div className="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="text-sm font-bold">{value}</div>
     </div>
   )
 }

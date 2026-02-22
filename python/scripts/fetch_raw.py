@@ -142,38 +142,42 @@ def fetch_demographics() -> None:
         print("  WARNING: beautifulsoup4 not installed, skipping demographics")
         return
 
-    print("  Scraping 79 neighborhood census pages...")
+    print("  Scraping 79 neighborhood census pages (2020 + 2010)...")
     base_url = "https://www.stlouis-mo.gov/government/departments/planning/research/census/data/neighborhoods/neighborhood.cfm"
     all_data = {}
 
     for num in range(1, 80):
         nhd_id = str(num).zfill(2)
-        url = f"{base_url}?number={num}&censusYear=2020"
-        try:
-            resp = requests.get(url, timeout=30, headers=HEADERS)
-            resp.raise_for_status()
-            soup = BeautifulSoup(resp.text, "lxml")
+        page_data = {}
 
-            # Extract neighborhood name from the page title or heading
-            h1 = soup.find("h1")
-            name = h1.get_text(strip=True) if h1 else f"Neighborhood {nhd_id}"
-            name = re.sub(r"\s*-\s*Census\s*Data.*", "", name).strip()
+        for year in (2020, 2010):
+            url = f"{base_url}?number={num}&censusYear={year}"
+            try:
+                resp = requests.get(url, timeout=30, headers=HEADERS)
+                resp.raise_for_status()
+                soup = BeautifulSoup(resp.text, "lxml")
 
-            # Parse tables for population, race, housing data
-            tables = soup.find_all("table")
-            page_data = {"name": name, "tables_found": len(tables)}
+                if year == 2020:
+                    h1 = soup.find("h1")
+                    name = h1.get_text(strip=True) if h1 else f"Neighborhood {nhd_id}"
+                    name = re.sub(r"\s*-\s*Census\s*Data.*", "", name).strip()
+                    page_data["name"] = name
+                    tables = soup.find_all("table")
+                    page_data["tables_found"] = len(tables)
 
-            # Extract text content for later parsing
-            text_content = soup.get_text(separator="\n")
-            page_data["text"] = text_content[:5000]  # Cap for storage
+                text_content = soup.get_text(separator="\n")
+                page_data[f"text_{year}"] = text_content[:5000]
+                # Keep backward compat: "text" key is the 2020 data
+                if year == 2020:
+                    page_data["text"] = text_content[:5000]
 
-            all_data[nhd_id] = page_data
+            except Exception as e:
+                print(f"    Failed NHD {nhd_id} ({year}): {e}")
 
-            if num % 10 == 0:
-                print(f"    Scraped {num}/79 neighborhoods...")
+        all_data[nhd_id] = page_data
 
-        except Exception as e:
-            print(f"    Failed NHD {nhd_id}: {e}")
+        if num % 10 == 0:
+            print(f"    Scraped {num}/79 neighborhoods...")
 
     dest = RAW_DIR / "demographics.json"
     with open(dest, "w") as f:

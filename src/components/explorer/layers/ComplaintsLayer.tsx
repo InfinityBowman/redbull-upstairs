@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Layer, Source } from 'react-map-gl/mapbox'
 import { useData, useExplorer } from '../ExplorerProvider'
 import { CHORO_COLORS, dynamicBreaks } from '@/lib/colors'
-import { getHoodComplaintCount } from '@/lib/analysis'
+import { getHoodComplaintCount, buildHeatmapGeo } from '@/lib/analysis'
 
 export function ComplaintsLayer() {
   const { state } = useExplorer()
@@ -69,18 +69,7 @@ export function ComplaintsLayer() {
     return { type: 'FeatureCollection' as const, features }
   }, [data.neighborhoods, data.csbData, category, timeActive, filteredPoints])
 
-  // Heatmap GeoJSON from filtered points
-  const heatmapGeo = useMemo(() => {
-    if (filteredPoints.length === 0) return null
-    return {
-      type: 'FeatureCollection' as const,
-      features: filteredPoints.map((p) => ({
-        type: 'Feature' as const,
-        properties: { weight: 0.6 },
-        geometry: { type: 'Point' as const, coordinates: [p[1], p[0]] },
-      })),
-    }
-  }, [filteredPoints])
+  const heatmapGeo = useMemo(() => buildHeatmapGeo(filteredPoints), [filteredPoints])
 
   const breaks = useMemo(() => {
     if (!choroplethGeo) return dynamicBreaks([])

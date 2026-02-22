@@ -1,4 +1,5 @@
-import type { CSBData, NeighborhoodStats, TrendsData } from './types'
+import type { CSBData, NeighborhoodStats, TrendsData, VacantProperty } from './types'
+import type { SubToggles } from './explorer-types'
 
 /** Detect volume hotspots (neighborhoods with >2x avg complaints) */
 export function detectVolumeHotspots(data: CSBData, limit = 5) {
@@ -122,6 +123,47 @@ export function getHoodComplaintCount(
   return hood.topCategories?.[category] ?? 0
 }
 
+/** Filter vacancy data by sub-toggle state */
+export function filterVacancies(
+  data: Array<VacantProperty>,
+  toggles: SubToggles,
+): Array<VacantProperty> {
+  const {
+    vacancyUseFilter,
+    vacancyOwnerFilter,
+    vacancyTypeFilter,
+    vacancyHoodFilter,
+    vacancyMinScore,
+    vacancyMaxScore,
+  } = toggles
+  return data.filter((p) => {
+    if (p.triageScore < vacancyMinScore || p.triageScore > vacancyMaxScore) return false
+    if (vacancyUseFilter !== 'all' && p.bestUse !== vacancyUseFilter) return false
+    if (vacancyOwnerFilter === 'lra' && p.owner !== 'LRA') return false
+    if (vacancyOwnerFilter === 'private' && p.owner !== 'PRIVATE') return false
+    if (vacancyOwnerFilter === 'city' && p.owner !== 'CITY') return false
+    if (vacancyTypeFilter === 'lot' && p.propertyType !== 'lot') return false
+    if (vacancyTypeFilter === 'building' && p.propertyType !== 'building') return false
+    if (vacancyHoodFilter !== 'all' && p.neighborhood !== vacancyHoodFilter) return false
+    return true
+  })
+}
+
+/** Build heatmap GeoJSON from point tuples [lat, lon, ...] */
+export function buildHeatmapGeo(
+  points: Array<Array<number | string>>,
+): GeoJSON.FeatureCollection | null {
+  if (points.length === 0) return null
+  return {
+    type: 'FeatureCollection',
+    features: points.map((p) => ({
+      type: 'Feature' as const,
+      properties: { weight: 0.6 },
+      geometry: { type: 'Point' as const, coordinates: [p[1] as number, p[0] as number] },
+    })),
+  }
+}
+
 /** City-wide KPI stats from CSB data */
 export function computeKPIs(data: CSBData) {
   const hoods = Object.values(data.neighborhoods)
@@ -137,7 +179,7 @@ export function computeKPIs(data: CSBData) {
     .sort((a, b) => b.avgResolutionDays - a.avgResolutionDays)[0]
 
   const dailyVals = Object.entries(data.dailyCounts)
-  const peakDay = dailyVals.sort((a, b) => b[1] - a[1])[0]
+  const peakDay = dailyVals.sort((a, b) => b[1] - a[1])[0] ?? ['N/A', 0]
 
   return {
     totalRequests: data.totalRequests,

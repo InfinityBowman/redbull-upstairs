@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { useData } from '../ExplorerProvider'
+import { useData, useFailedDatasets } from '../ExplorerProvider'
+import { MiniKpi } from './MiniKpi'
 import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart'
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
 import { HourlyChart } from '@/components/charts/HourlyChart'
@@ -8,6 +9,7 @@ import { movingAverage } from '@/lib/analysis'
 
 export function CrimeAnalytics() {
   const data = useData()
+  const failed = useFailedDatasets()
 
   const kpis = useMemo(() => {
     if (!data.crimeData) return null
@@ -41,6 +43,11 @@ export function CrimeAnalytics() {
   )
 
   if (!data.crimeData || !kpis) {
+    if (failed.has('crime')) {
+      return (
+        <div className="text-xs text-muted-foreground">Crime data unavailable.</div>
+      )
+    }
     return (
       <div className="text-xs text-muted-foreground">Loading crime data...</div>
     )
@@ -87,13 +94,3 @@ export function CrimeAnalytics() {
   )
 }
 
-function MiniKpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-muted px-2.5 py-1.5">
-      <div className="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="text-sm font-bold">{value}</div>
-    </div>
-  )
-}

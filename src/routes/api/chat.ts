@@ -28,10 +28,29 @@ export const Route = createFileRoute('/api/chat')({
 
         const { messages, context } = body
 
+        // Validate inputs to prevent abuse
+        if (!Array.isArray(messages) || messages.length > 50) {
+          return new Response(
+            JSON.stringify({ error: 'Invalid messages' }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } },
+          )
+        }
+        if (typeof context !== 'string' || context.length > 20000) {
+          return new Response(
+            JSON.stringify({ error: 'Invalid context' }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } },
+          )
+        }
+
+        const sanitizedMessages = messages.map((m) => ({
+          role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: typeof m.content === 'string' ? m.content.slice(0, 8000) : '',
+        }))
+
         const openRouterBody = {
           model: 'arcee-ai/trinity-large-preview:free',
           stream: true,
-          messages: [{ role: 'system', content: context }, ...messages],
+          messages: [{ role: 'system', content: context }, ...sanitizedMessages],
           tools: TOOL_DEFINITIONS,
           tool_choice: 'auto',
         }

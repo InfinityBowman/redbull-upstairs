@@ -52,12 +52,6 @@ export function DemographicsLayer() {
 
   if (!data.demographicsData || !data.neighborhoods) return null
 
-  const titles: Record<string, string> = {
-    population: 'Population (2020)',
-    vacancyRate: 'Vacancy Rate %',
-    popChange: 'Pop Change 2010-20 %',
-  }
-
   return (
     <>
       {choroplethGeo && (

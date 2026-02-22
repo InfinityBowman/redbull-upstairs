@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
-import { useData } from '../ExplorerProvider'
+import { useData, useFailedDatasets } from '../ExplorerProvider'
+import { MiniKpi } from './MiniKpi'
 import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart'
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
 
 export function ArpaAnalytics() {
   const data = useData()
+  const failed = useFailedDatasets()
 
   const kpis = useMemo(() => {
     if (!data.arpaData) return null
@@ -48,6 +50,11 @@ export function ArpaAnalytics() {
   )
 
   if (!data.arpaData || !kpis) {
+    if (failed.has('arpa')) {
+      return (
+        <div className="text-xs text-muted-foreground">ARPA data unavailable.</div>
+      )
+    }
     return (
       <div className="text-xs text-muted-foreground">Loading ARPA data...</div>
     )
@@ -75,6 +82,7 @@ export function ArpaAnalytics() {
             barLabel="Monthly ($K)"
             lineLabel="Cumulative ($M)"
             height={180}
+            dualAxis
           />
         </div>
         <div className="h-[180px] overflow-hidden">
@@ -124,13 +132,3 @@ export function ArpaAnalytics() {
   )
 }
 
-function MiniKpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-muted px-2.5 py-1.5">
-      <div className="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="text-sm font-bold">{value}</div>
-    </div>
-  )
-}

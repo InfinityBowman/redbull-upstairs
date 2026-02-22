@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
@@ -16,6 +16,8 @@ export function useChat() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [toolCalls, setToolCalls] = useState<Array<ToolCall>>([])
   const abortRef = useRef<AbortController | null>(null)
+  const messagesRef = useRef(messages)
+  useEffect(() => { messagesRef.current = messages }, [messages])
 
   const sendMessage = useCallback(
     async (
@@ -28,7 +30,7 @@ export function useChat() {
       setIsStreaming(true)
       setToolCalls([])
 
-      const allMessages = [...messages, userMsg].map((m) => ({
+      const allMessages = [...messagesRef.current, userMsg].map((m) => ({
         role: m.role,
         content: m.content,
       }))
@@ -162,7 +164,7 @@ export function useChat() {
       setIsStreaming(false)
       return { response: responseText, tools: collectedTools }
     },
-    [messages],
+    [],
   )
 
   const cancel = useCallback(() => {

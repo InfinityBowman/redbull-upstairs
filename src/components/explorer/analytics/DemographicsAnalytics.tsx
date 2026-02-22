@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
-import { useData } from '../ExplorerProvider'
+import { useData, useFailedDatasets } from '../ExplorerProvider'
+import { MiniKpi } from './MiniKpi'
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
 
 export function DemographicsAnalytics() {
   const data = useData()
+  const failed = useFailedDatasets()
 
   const kpis = useMemo(() => {
     if (!data.demographicsData) return null
@@ -37,19 +39,36 @@ export function DemographicsAnalytics() {
       .slice(0, 12)
   }, [data.demographicsData])
 
-  const popChangeChart = useMemo(() => {
+  const popGainsChart = useMemo(() => {
     if (!data.demographicsData) return []
     return Object.entries(data.demographicsData)
-      .filter(([, h]) => h.population['2010'] > 0)
+      .filter(([, h]) => h.population['2010'] > 0 && h.popChange10to20 > 0)
       .map(([, h]) => ({
         name: h.name,
         value: Math.round(h.popChange10to20 * 10) / 10,
       }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 12)
+      .slice(0, 8)
+  }, [data.demographicsData])
+
+  const popDeclinesChart = useMemo(() => {
+    if (!data.demographicsData) return []
+    return Object.entries(data.demographicsData)
+      .filter(([, h]) => h.population['2010'] > 0 && h.popChange10to20 < 0)
+      .map(([, h]) => ({
+        name: h.name,
+        value: Math.round(Math.abs(h.popChange10to20) * 10) / 10,
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8)
   }, [data.demographicsData])
 
   if (!data.demographicsData || !kpis) {
+    if (failed.has('demographics')) {
+      return (
+        <div className="text-xs text-muted-foreground">Demographics data unavailable.</div>
+      )
+    }
     return (
       <div className="text-xs text-muted-foreground">
         Loading demographics data...
@@ -66,7 +85,7 @@ export function DemographicsAnalytics() {
         <MiniKpi label="Neighborhoods" value={String(kpis.neighborhoods)} />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
           <div className="mb-1 text-[0.6rem] font-semibold text-muted-foreground">
             Most Populated Neighborhoods
@@ -77,10 +96,18 @@ export function DemographicsAnalytics() {
         </div>
         <div>
           <div className="mb-1 text-[0.6rem] font-semibold text-muted-foreground">
-            Population Change 2010-2020 (%)
+            Biggest Gains 2010-2020 (%)
           </div>
           <div className="h-[180px] overflow-hidden">
-            <CategoryBarChart data={popChangeChart} horizontal height={180} valueLabel="Change (%)" />
+            <CategoryBarChart data={popGainsChart} horizontal height={180} valueLabel="Growth (%)" />
+          </div>
+        </div>
+        <div>
+          <div className="mb-1 text-[0.6rem] font-semibold text-muted-foreground">
+            Biggest Declines 2010-2020 (%)
+          </div>
+          <div className="h-[180px] overflow-hidden">
+            <CategoryBarChart data={popDeclinesChart} horizontal height={180} valueLabel="Decline (%)" />
           </div>
         </div>
       </div>
@@ -88,13 +115,3 @@ export function DemographicsAnalytics() {
   )
 }
 
-function MiniKpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-muted px-2.5 py-1.5">
-      <div className="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="text-sm font-bold">{value}</div>
-    </div>
-  )
-}

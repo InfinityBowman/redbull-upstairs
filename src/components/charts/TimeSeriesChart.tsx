@@ -17,6 +17,7 @@ interface TimeSeriesChartProps {
   barLabel?: string
   lineLabel?: string
   height?: number
+  dualAxis?: boolean
 }
 
 export function TimeSeriesChart({
@@ -26,6 +27,7 @@ export function TimeSeriesChart({
   barLabel = 'Daily',
   lineLabel = '7-Day Avg',
   height = 350,
+  dualAxis = false,
 }: TimeSeriesChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -42,7 +44,19 @@ export function TimeSeriesChart({
           interval="preserveStartEnd"
           minTickGap={40}
         />
-        <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+        <YAxis
+          yAxisId="left"
+          stroke="var(--color-muted-foreground)"
+          fontSize={11}
+        />
+        {dualAxis && (
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            stroke={lineColor}
+            fontSize={11}
+          />
+        )}
         <Tooltip
           contentStyle={{
             background: 'var(--color-card)',
@@ -56,12 +70,14 @@ export function TimeSeriesChart({
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Bar
+          yAxisId="left"
           dataKey="value"
           name={barLabel}
           fill={barColor}
           radius={[2, 2, 0, 0]}
         />
         <Line
+          yAxisId={dualAxis ? 'right' : 'left'}
           dataKey="ma7"
           name={lineLabel}
           stroke={lineColor}

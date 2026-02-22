@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Layer, Source } from 'react-map-gl/mapbox'
 import { useData, useExplorer } from '../ExplorerProvider'
 import { CRIME_COLORS, dynamicBreaks } from '@/lib/colors'
+import { buildHeatmapGeo } from '@/lib/analysis'
 
 export function CrimeLayer() {
   const { state } = useExplorer()
@@ -79,18 +80,7 @@ export function CrimeLayer() {
     return { type: 'FeatureCollection' as const, features }
   }, [data.neighborhoods, data.crimeData, category, timeActive, filteredPoints])
 
-  // Heatmap GeoJSON from filtered points
-  const heatmapGeo = useMemo(() => {
-    if (filteredPoints.length === 0) return null
-    return {
-      type: 'FeatureCollection' as const,
-      features: filteredPoints.map((p) => ({
-        type: 'Feature' as const,
-        properties: { weight: 0.6 },
-        geometry: { type: 'Point' as const, coordinates: [p[1], p[0]] },
-      })),
-    }
-  }, [filteredPoints])
+  const heatmapGeo = useMemo(() => buildHeatmapGeo(filteredPoints), [filteredPoints])
 
   const breaks = useMemo(() => {
     if (!choroplethGeo) return dynamicBreaks([])

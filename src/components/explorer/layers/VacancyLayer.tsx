@@ -2,37 +2,16 @@ import { useMemo } from 'react'
 import { Layer, Source } from 'react-map-gl/mapbox'
 import { useData, useExplorer } from '../ExplorerProvider'
 import { VACANCY_COLORS, percentileBreaks } from '@/lib/colors'
+import { filterVacancies } from '@/lib/analysis'
 
 export function VacancyLayer() {
   const { state } = useExplorer()
   const data = useData()
 
-  const filtered = useMemo(() => {
-    if (!data.vacancyData) return []
-    const {
-      vacancyUseFilter,
-      vacancyOwnerFilter,
-      vacancyTypeFilter,
-      vacancyHoodFilter,
-      vacancyMinScore,
-      vacancyMaxScore,
-    } = state.subToggles
-    return data.vacancyData.filter((p) => {
-      if (p.triageScore < vacancyMinScore || p.triageScore > vacancyMaxScore) return false
-      if (vacancyUseFilter !== 'all' && p.bestUse !== vacancyUseFilter)
-        return false
-      if (vacancyOwnerFilter === 'lra' && p.owner !== 'LRA') return false
-      if (vacancyOwnerFilter === 'private' && p.owner !== 'PRIVATE')
-        return false
-      if (vacancyOwnerFilter === 'city' && p.owner !== 'CITY') return false
-      if (vacancyTypeFilter === 'lot' && p.propertyType !== 'lot') return false
-      if (vacancyTypeFilter === 'building' && p.propertyType !== 'building')
-        return false
-      if (vacancyHoodFilter !== 'all' && p.neighborhood !== vacancyHoodFilter)
-        return false
-      return true
-    })
-  }, [data.vacancyData, state.subToggles])
+  const filtered = useMemo(
+    () => (data.vacancyData ? filterVacancies(data.vacancyData, state.subToggles) : []),
+    [data.vacancyData, state.subToggles],
+  )
 
   // Compute breaks from ALL data so colors stay stable when filtering
   const breaks = useMemo(

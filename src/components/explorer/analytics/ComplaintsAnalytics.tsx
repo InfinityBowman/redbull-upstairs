@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { useData } from '../ExplorerProvider'
+import { useData, useFailedDatasets } from '../ExplorerProvider'
+import { MiniKpi } from './MiniKpi'
 import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart'
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
 import { HourlyChart } from '@/components/charts/HourlyChart'
@@ -9,6 +10,7 @@ import { computeKPIs, movingAverage, weatherInsights } from '@/lib/analysis'
 
 export function ComplaintsAnalytics() {
   const data = useData()
+  const failed = useFailedDatasets()
 
   const kpis = useMemo(
     () => (data.csbData ? computeKPIs(data.csbData) : null),
@@ -43,6 +45,11 @@ export function ComplaintsAnalytics() {
   )
 
   if (!data.csbData || !kpis) {
+    if (failed.has('complaints')) {
+      return (
+        <div className="text-xs text-muted-foreground">311 data unavailable.</div>
+      )
+    }
     return (
       <div className="text-xs text-muted-foreground">Loading 311 data...</div>
     )
@@ -100,13 +107,3 @@ export function ComplaintsAnalytics() {
   )
 }
 
-function MiniKpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-muted px-2.5 py-1.5">
-      <div className="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="text-sm font-bold">{value}</div>
-    </div>
-  )
-}

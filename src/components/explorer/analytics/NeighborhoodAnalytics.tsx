@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
-import { useData } from '../ExplorerProvider'
+import { useData, useFailedDatasets } from '../ExplorerProvider'
+import { MiniKpi } from './MiniKpi'
 import { haversine, polygonCentroid } from '@/lib/equity'
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
 import { scoreColor } from '@/lib/colors'
 
 export function NeighborhoodAnalytics({ id }: { id: string }) {
   const data = useData()
+  const failed = useFailedDatasets()
   const hoodKey = id.padStart(2, '0')
 
   const hood = data.csbData?.neighborhoods[hoodKey]
@@ -13,9 +15,13 @@ export function NeighborhoodAnalytics({ id }: { id: string }) {
     (f) => String(f.properties.NHD_NUM).padStart(2, '0') === hoodKey,
   )
 
-  const centroid: [number, number] = hoodFeature
-    ? polygonCentroid(hoodFeature.geometry.coordinates as Array<Array<Array<number>>>)
-    : [38.635, -90.245]
+  const centroid = useMemo<[number, number]>(
+    () =>
+      hoodFeature
+        ? polygonCentroid(hoodFeature.geometry.coordinates as Array<Array<Array<number>>>)
+        : [38.635, -90.245],
+    [hoodFeature],
+  )
 
   const hoodVacancies = useMemo(
     () =>
@@ -47,6 +53,11 @@ export function NeighborhoodAnalytics({ id }: { id: string }) {
   )
 
   if (!hood) {
+    if (failed.has('complaints')) {
+      return (
+        <div className="text-xs text-muted-foreground">Neighborhood data unavailable.</div>
+      )
+    }
     return (
       <div className="text-xs text-muted-foreground">
         Loading neighborhood data...
@@ -78,7 +89,7 @@ export function NeighborhoodAnalytics({ id }: { id: string }) {
             Top 311 Issues
           </div>
           <div className="h-[140px]">
-            <CategoryBarChart data={catData} horizontal valueLabel="Complaints" />
+            <CategoryBarChart data={catData} horizontal height={140} valueLabel="Complaints" />
           </div>
         </div>
         <div>
@@ -110,13 +121,3 @@ export function NeighborhoodAnalytics({ id }: { id: string }) {
   )
 }
 
-function MiniKpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-muted px-2 py-1">
-      <div className="text-[0.5rem] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="text-xs font-bold">{value}</div>
-    </div>
-  )
-}

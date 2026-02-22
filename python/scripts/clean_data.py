@@ -959,7 +959,7 @@ def process_arpa() -> None:
 
         # Monthly
         if date_str:
-            for fmt in ("%m/%d/%Y %H:%M", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            for fmt in ("%B, %d %Y %H:%M:%S", "%B, %d %Y", "%m/%d/%Y %H:%M", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
                 try:
                     dt = datetime.strptime(date_str, fmt)
                     month_key = dt.strftime("%Y-%m")
@@ -1074,8 +1074,18 @@ def process_demographics() -> None:
 
         lm = build_line_map(text)
 
-        # Population
+        # Population (2020)
         pop_2020 = lm.get("total population", 0)
+
+        # Population (2010) — from separate scrape if available
+        text_2010 = page_data.get("text_2010", "")
+        lm_2010 = build_line_map(text_2010) if text_2010 else {}
+        pop_2010 = lm_2010.get("total population", 0)
+
+        # Population change 2010 → 2020
+        pop_change = 0.0
+        if pop_2010 > 0:
+            pop_change = round((pop_2020 - pop_2010) / pop_2010 * 100, 1)
 
         # Race (use "alone" variants from the total population section)
         white = lm.get("white alone", 0)
@@ -1091,14 +1101,11 @@ def process_demographics() -> None:
 
         vacancy_rate = round(vacant / total_units * 100, 1) if total_units > 0 else 0
 
-        # For 2010 population and pop change, scrape would need the 2010 page.
-        # Use a rough estimate: if page was fetched for 2020, we only have 2020 data.
-        # Set 2010 to 0 (unknown) rather than a wrong number.
         demographics[nhd_id] = {
             "name": name,
             "population": {
                 "2020": pop_2020,
-                "2010": 0,
+                "2010": pop_2010,
                 "2000": 0,
             },
             "race": {
@@ -1116,7 +1123,7 @@ def process_demographics() -> None:
                 "ownerOccupied": 0,
                 "renterOccupied": 0,
             },
-            "popChange10to20": 0,
+            "popChange10to20": pop_change,
         }
 
     out_path = OUT_DIR / "demographics.json"

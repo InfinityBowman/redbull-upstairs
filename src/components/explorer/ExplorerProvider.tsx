@@ -91,6 +91,7 @@ const ExplorerContext = createContext<{
 } | null>(null)
 
 const DataContext = createContext<ExplorerData | null>(null)
+const FailedDatasetsContext = createContext<Set<string>>(new Set())
 
 // ── Hooks ──────────────────────────────────────────────────
 
@@ -104,6 +105,10 @@ export function useData() {
   const ctx = useContext(DataContext)
   if (!ctx) throw new Error('useData must be used within ExplorerProvider')
   return ctx
+}
+
+export function useFailedDatasets() {
+  return useContext(FailedDatasetsContext)
 }
 
 // ── Provider ───────────────────────────────────────────────
@@ -128,16 +133,37 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
 
   // Track which datasets have been fetched to avoid double-fetch
   const fetched = useRef<Set<string>>(new Set())
+  const [failedDatasets, setFailedDatasets] = useState<Set<string>>(new Set())
+  const markFailed = useCallback((layer: string) => {
+    setFailedDatasets((prev) => {
+      const next = new Set(prev)
+      next.add(layer)
+      return next
+    })
+  }, [])
 
   // Always load base datasets on mount
   useEffect(() => {
     Promise.all([
-      fetch('/data/neighborhoods.geojson').then((r) => r.json()),
-      fetch('/data/routes.json').then((r) => r.json()),
-      fetch('/data/grocery_stores.geojson').then((r) => r.json()),
-    ]).then(([neighborhoods, routes, groceryStores]) => {
-      setData((prev) => ({ ...prev, neighborhoods, routes, groceryStores }))
-    })
+      fetch('/data/neighborhoods.geojson').then((r) => {
+        if (!r.ok) throw new Error('Failed to load neighborhoods')
+        return r.json()
+      }),
+      fetch('/data/routes.json').then((r) => {
+        if (!r.ok) throw new Error('Failed to load routes')
+        return r.json()
+      }),
+      fetch('/data/grocery_stores.geojson').then((r) => {
+        if (!r.ok) throw new Error('Failed to load grocery stores')
+        return r.json()
+      }),
+    ])
+      .then(([neighborhoods, routes, groceryStores]) => {
+        setData((prev) => ({ ...prev, neighborhoods, routes, groceryStores }))
+      })
+      .catch((err) => {
+        console.error('Failed to load base data:', err)
+      })
   }, [])
 
   // Lazy-load datasets based on active layers
@@ -148,23 +174,39 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
     switch (layer) {
       case 'complaints':
         Promise.all([
-          fetch('/data/csb_latest.json').then((r) => r.json()),
-          fetch('/data/trends.json').then((r) => r.json()),
-        ]).then(([csbData, trendsData]) => {
-          setData((prev) => ({ ...prev, csbData, trendsData }))
-        })
+          fetch('/data/csb_latest.json').then((r) => {
+            if (!r.ok) throw new Error('not found')
+            return r.json()
+          }),
+          fetch('/data/trends.json').then((r) => {
+            if (!r.ok) throw new Error('not found')
+            return r.json()
+          }),
+        ])
+          .then(([csbData, trendsData]) => {
+            setData((prev) => ({ ...prev, csbData, trendsData }))
+          })
+          .catch(() => markFailed('complaints'))
         break
 
       case 'transit':
         Promise.all([
-          fetch('/data/stops.geojson').then((r) => r.json()),
+          fetch('/data/stops.geojson').then((r) => {
+            if (!r.ok) throw new Error('not found')
+            return r.json()
+          }),
           fetch('/data/shapes.geojson')
             .then((r) => r.json())
             .catch(() => null),
-          fetch('/data/stop_stats.json').then((r) => r.json()),
-        ]).then(([stops, shapes, stopStats]) => {
-          setData((prev) => ({ ...prev, stops, shapes, stopStats }))
-        })
+          fetch('/data/stop_stats.json').then((r) => {
+            if (!r.ok) throw new Error('not found')
+            return r.json()
+          }),
+        ])
+          .then(([stops, shapes, stopStats]) => {
+            setData((prev) => ({ ...prev, stops, shapes, stopStats }))
+          })
+          .catch(() => markFailed('transit'))
         break
 
       case 'vacancy':
@@ -187,10 +229,14 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
 
       case 'foodAccess':
         fetch('/data/food_deserts.geojson')
-          .then((r) => r.json())
+          .then((r) => {
+            if (!r.ok) throw new Error('not found')
+            return r.json()
+          })
           .then((foodDeserts) => {
             setData((prev) => ({ ...prev, foodDeserts }))
           })
+          .catch(() => markFailed('foodAccess'))
         break
 
       case 'crime':
@@ -202,9 +248,7 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
           .then((crimeData) => {
             setData((prev) => ({ ...prev, crimeData }))
           })
-          .catch(() => {
-            // Crime data may not exist yet
-          })
+          .catch(() => markFailed('crime'))
         break
 
       case 'arpa':
@@ -216,9 +260,7 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
           .then((arpaData) => {
             setData((prev) => ({ ...prev, arpaData }))
           })
-          .catch(() => {
-            // ARPA data may not exist yet
-          })
+          .catch(() => markFailed('arpa'))
         break
 
       case 'demographics':
@@ -230,31 +272,10 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
           .then((demographicsData) => {
             setData((prev) => ({ ...prev, demographicsData }))
           })
-          .catch(() => {
-            // Demographics data may not exist yet
-          })
+          .catch(() => markFailed('demographics'))
         break
     }
   }, [])
-
-  // Prefetch all layer datasets in background after base data loads
-  useEffect(() => {
-    const allLayers: Array<keyof LayerToggles> = [
-      'complaints',
-      'transit',
-      'vacancy',
-      'foodAccess',
-      'crime',
-      'arpa',
-      'demographics',
-    ]
-    const prefetch = () => allLayers.forEach((l) => loadLayerData(l))
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(prefetch)
-    } else {
-      setTimeout(prefetch, 200)
-    }
-  }, [loadLayerData])
 
   // Trigger lazy loads when layers are toggled on
   useEffect(() => {
@@ -292,7 +313,11 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
 
   return (
     <ExplorerContext.Provider value={{ state, dispatch, loadLayerData }}>
-      <DataContext.Provider value={data}>{children}</DataContext.Provider>
+      <DataContext.Provider value={data}>
+        <FailedDatasetsContext.Provider value={failedDatasets}>
+          {children}
+        </FailedDatasetsContext.Provider>
+      </DataContext.Provider>
     </ExplorerContext.Provider>
   )
 }

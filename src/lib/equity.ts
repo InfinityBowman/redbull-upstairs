@@ -83,52 +83,47 @@ export function computeEquityGaps(
     let groceryAccessible = false
     let transitTimeEstimate: number | null = null
 
-    groceryStores.features.forEach((store) => {
+    // Pre-compute tract-nearby stops to avoid re-scanning in inner loop
+    const tractNearbyStops = stops.features.filter((s) => {
+      const [lon, lat] = s.geometry.coordinates as Array<number>
+      return haversine(centroid[0], centroid[1], lat, lon) <= WALK_RADIUS_MILES
+    })
+
+    for (const store of groceryStores.features) {
       const [sLon, sLat] = store.geometry.coordinates as Array<number>
-      stops.features.forEach((stop) => {
+      for (const stop of stops.features) {
         const [bLon, bLat] = stop.geometry.coordinates as Array<number>
         const distStopToGrocery = haversine(sLat, sLon, bLat, bLon)
-        if (distStopToGrocery <= 0.25) {
-          const distStopToTract = haversine(
-            centroid[0],
-            centroid[1],
-            bLat,
-            bLon,
+        if (distStopToGrocery > 0.25) continue
+        const distStopToTract = haversine(centroid[0], centroid[1], bLat, bLon)
+        const stats = stopStats[stop.properties.stop_id as string]
+        if (!stats?.routes.length) continue
+
+        for (const tractStop of tractNearbyStops) {
+          const [tLon, tLat] = tractStop.geometry.coordinates as Array<number>
+          const distToTract = haversine(centroid[0], centroid[1], tLat, tLon)
+          const tractStopStats =
+            stopStats[tractStop.properties.stop_id as string]
+          if (!tractStopStats) continue
+          const sharedRoute = tractStopStats.routes.find((r) =>
+            stats.routes.includes(r),
           )
-          const stats = stopStats[stop.properties.stop_id as string]
-          if (stats?.routes.length) {
-            stops.features.forEach((tractStop) => {
-              const [tLon, tLat] = tractStop.geometry.coordinates as Array<number>
-              const distToTract = haversine(
-                centroid[0],
-                centroid[1],
-                tLat,
-                tLon,
-              )
-              if (distToTract <= WALK_RADIUS_MILES) {
-                const tractStopStats =
-                  stopStats[tractStop.properties.stop_id as string]
-                if (tractStopStats) {
-                  const sharedRoute = tractStopStats.routes.find((r) =>
-                    stats.routes.includes(r),
-                  )
-                  if (sharedRoute) {
-                    groceryAccessible = true
-                    const walkToStop = (distToTract / 3) * 60
-                    const busTime = (distStopToTract / 15) * 60
-                    const walkToStore = (distStopToGrocery / 3) * 60
-                    const total = walkToStop + 10 + busTime + walkToStore
-                    if (!transitTimeEstimate || total < transitTimeEstimate) {
-                      transitTimeEstimate = total
-                    }
-                  }
-                }
-              }
-            })
+          if (sharedRoute) {
+            groceryAccessible = true
+            const walkToStop = (distToTract / 3) * 60
+            const busTime = (distStopToTract / 15) * 60
+            const walkToStore = (distStopToGrocery / 3) * 60
+            const total = walkToStop + 10 + busTime + walkToStore
+            if (!transitTimeEstimate || total < transitTimeEstimate) {
+              transitTimeEstimate = total
+            }
+            break
           }
         }
-      })
-    })
+        if (groceryAccessible) break
+      }
+      if (groceryAccessible) break
+    }
 
     let score = 0
     score += Math.min(stopsNearby * 10, 30)

@@ -35,7 +35,7 @@ const LAYER_TABS: Array<{
 ]
 
 export function AnalyticsPanel() {
-  const { state, dispatch } = useExplorer()
+  const { state, dispatch, loadLayerData } = useExplorer()
   const [activeTab, setActiveTab] = useState<string>('')
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
   const heightRef = useRef(state.analyticsPanelHeight)
@@ -43,24 +43,39 @@ export function AnalyticsPanel() {
   const isDragging = useRef(false)
   const clipHeight = useMotionValue(state.analyticsPanelExpanded ? state.analyticsPanelHeight : 0)
 
-  // Build available tabs from active layers + chart builder
+  // Show all analytics tabs always — data loads on demand
   const tabs = useMemo<Array<TabDef>>(() => {
-    const result: Array<TabDef> = []
-    for (const lt of LAYER_TABS) {
-      if (state.layers[lt.layer]) {
-        result.push({ key: lt.key, label: lt.label, color: lt.color, layer: lt.layer, node: lt.component() })
-      }
-    }
+    const result: Array<TabDef> = LAYER_TABS.map((lt) => ({
+      key: lt.key,
+      label: lt.label,
+      color: lt.color,
+      layer: lt.layer,
+      node: lt.component(),
+    }))
     result.push({ key: 'chart', label: 'Chart Builder', node: <ChartBuilder /> })
     return result
-  }, [state.layers])
+  }, [])
 
-  // Auto-select first tab when active layers change
+  // Default to first tab
   useEffect(() => {
-    if (tabs.length > 0 && !tabs.find((t) => t.key === activeTab)) {
+    if (tabs.length > 0 && !activeTab) {
       setActiveTab(tabs[0].key)
     }
   }, [tabs, activeTab])
+
+  // Load data when a tab is selected (regardless of layer toggle)
+  const handleTabClick = useCallback(
+    (tabKey: string) => {
+      setActiveTab(tabKey)
+      const tab = LAYER_TABS.find((lt) => lt.key === tabKey)
+      if (tab) {
+        loadLayerData(tab.layer)
+        // Transit needs food access data for equity gaps
+        if (tab.layer === 'transit') loadLayerData('foodAccess')
+      }
+    },
+    [loadLayerData],
+  )
 
   useEffect(() => {
     heightRef.current = state.analyticsPanelHeight
@@ -150,7 +165,7 @@ export function AnalyticsPanel() {
               key={tab.key}
               active={activeTab === tab.key}
               activeColor={tab.color}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabClick(tab.key)}
             >
               {tab.label}
             </TabPill>
@@ -174,14 +189,7 @@ export function AnalyticsPanel() {
             />
           ) : currentTab ? (
             currentTab.node
-          ) : (
-            <div className="flex h-[120px] flex-col items-center justify-center gap-1 text-muted-foreground">
-              <span className="text-xs">No layers active</span>
-              <span className="text-[0.65rem]">
-                Toggle layers in the left panel to see analytics
-              </span>
-            </div>
-          )}
+          ) : null}
         </div>
       </motion.div>
     </div>
