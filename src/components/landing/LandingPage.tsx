@@ -21,7 +21,7 @@ const DATASETS = [
     stat: '~45,000',
     statLabel: 'requests per year',
     description:
-      'Every pothole report, graffiti complaint, and illegal dumping flag — mapped to the block it came from.',
+      'Every pothole report, graffiti complaint, and illegal dumping flag, mapped to the block it came from.',
     source: 'City of St. Louis CSB',
     coverage: '2020 – 2024',
   },
@@ -76,7 +76,7 @@ const DATASETS = [
     stat: '79',
     statLabel: 'neighborhoods profiled',
     description:
-      'Population, race, household income, and housing data — broken down to the neighborhood.',
+      'Population, race, household income, and housing data broken down to the neighborhood.',
     source: 'U.S. Census Bureau ACS',
     coverage: '2019 – 2023',
   },
@@ -87,7 +87,7 @@ const DATASETS = [
     stat: '$517M+',
     statLabel: 'tracked spending',
     description:
-      'Federal relief dollars flowing through the city — by project, vendor, and timeline.',
+      'Federal relief dollars flowing through the city by project, vendor, and timeline.',
     source: 'City Budget Division',
     coverage: '2021 – 2024',
   },
@@ -154,7 +154,7 @@ export function LandingPage() {
             variants={fadeUp}
             className="max-w-xl text-lg leading-relaxed text-muted-foreground"
           >
-            A unified analytics platform for St. Louis — connecting crime,
+            A unified analytics platform for St. Louis connecting crime,
             transit, vacancy, food access, and more across all 79 neighborhoods.
           </motion.p>
 

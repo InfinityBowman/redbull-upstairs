@@ -5,9 +5,11 @@ export const Route = createFileRoute('/_app')({ component: AppLayout })
 
 function AppLayout() {
   return (
-    <>
+    <div className="flex h-screen flex-col overflow-hidden">
       <Nav />
-      <Outlet />
-    </>
+      <div className="flex-1 overflow-y-auto">
+        <Outlet />
+      </div>
+    </div>
   )
 }

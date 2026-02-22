@@ -132,9 +132,9 @@ export function AboutPage() {
         <h2 className="mb-5 text-xl font-semibold">The Project</h2>
         <div className="space-y-4 text-[0.95rem] leading-relaxed text-muted-foreground">
           <p>
-            This platform consolidates three hackathon prototypes — a 311
+            This platform consolidates three hackathon prototypes (a 311
             Complaints explorer, a Transit Equity analyzer, and a Vacancy
-            Triage tool — into a single unified interface. Each prototype
+            Triage tool) into a single unified interface. Each prototype
             addressed a real problem but existed in isolation. Combining them
             reveals cross-cutting patterns that no single dataset can surface
             alone.

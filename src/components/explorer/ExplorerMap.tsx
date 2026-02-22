@@ -55,7 +55,7 @@ function MapStyleToggle() {
           onClick={() => dispatch({ type: 'SET_MAP_STYLE', style })}
           className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
             state.mapStyle === style
-              ? 'bg-foreground text-background'
+              ? 'bg-brand text-white'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
