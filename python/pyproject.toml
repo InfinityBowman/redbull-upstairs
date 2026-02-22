@@ -21,6 +21,9 @@ dependencies = [
     "matplotlib>=3.9",
     "folium>=0.17",
     "scikit-learn>=1.8.0",
+    "linearmodels>=7.0",
+    "numpy>=2.4.2",
+    "statsmodels>=0.14.6",
 ]
 
 [project.scripts]

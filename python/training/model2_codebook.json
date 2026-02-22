@@ -1,0 +1,232 @@
+{
+  "overview": {
+    "model": "Model 2 - Crime Displacement / Correlation",
+    "purpose": "Estimate associations between neighborhood conditions (vacancy, transit, ARPA investment) and crime incidents. NOT predictive policing. This is correlation/regression analysis to power a 'what-if' simulator.",
+    "recommended_approach": "Panel fixed-effects regression (neighborhood FE + time FE). For the simulator, use OLS coefficients as multipliers.",
+    "data_sources": [
+      "crime.json (NIBRS, 2021-2024, city-level monthly + neighborhood snapshots)",
+      "vacancies.json (9,582 parcels)",
+      "demographics.json (2020 Census, 79 neighborhoods)",
+      "csb_2025.json (311 service requests, neighborhood level)",
+      "stops.geojson + stop_stats.json (5,113 transit stops)",
+      "arpa.json (city-wide ARPA spending by category)"
+    ]
+  },
+  "files": {
+    "panel_full.csv": {
+      "rows": 3002,
+      "unit": "(neighborhood, month)",
+      "description": "Full panel dataset: 79 neighborhoods \u00d7 38 months (2021-01 to 2024-03). Use for fixed-effects regression."
+    },
+    "panel_train.csv": {
+      "rows": 2291,
+      "period": "2021-01 to 2023-06",
+      "description": "Training split for panel regression. ~30 months of data."
+    },
+    "panel_test.csv": {
+      "rows": 711,
+      "period": "2023-07 to 2024-03",
+      "description": "Holdout test set: last 9 months of panel. Evaluate predictions here."
+    },
+    "crosssectional_train.csv": {
+      "rows": 63,
+      "description": "80% of neighborhoods for cross-sectional OLS. Use to estimate simulator coefficients."
+    },
+    "crosssectional_test.csv": {
+      "rows": 16,
+      "description": "20% holdout neighborhoods for cross-sectional evaluation."
+    }
+  },
+  "columns": {
+    "neighborhood_id": {
+      "type": "string",
+      "description": "Zero-padded neighborhood number (01-79). Use as the fixed-effect group variable."
+    },
+    "neighborhood_name": {
+      "type": "string",
+      "description": "Human-readable neighborhood name."
+    },
+    "month": {
+      "type": "string",
+      "format": "YYYY-MM",
+      "description": "Month of observation. Use as time fixed effect."
+    },
+    "year": {
+      "type": "int",
+      "description": "Year (2021-2024)."
+    },
+    "month_num": {
+      "type": "int",
+      "description": "Month number 1-12. Useful for seasonality terms."
+    },
+    "population": {
+      "type": "int",
+      "source": "2020 Census",
+      "description": "Neighborhood population. Use as denominator for rate calculations."
+    },
+    "pct_black": {
+      "type": "float",
+      "units": "percent",
+      "description": "% Black residents. Include in regression to partial out demographic sorting."
+    },
+    "pct_white": {
+      "type": "float",
+      "units": "percent",
+      "description": "% White residents."
+    },
+    "pct_hispanic": {
+      "type": "float",
+      "units": "percent",
+      "description": "% Hispanic residents."
+    },
+    "total_housing_units": {
+      "type": "int",
+      "description": "Total housing units from Census."
+    },
+    "census_vacancy_rate": {
+      "type": "float",
+      "units": "percent",
+      "description": "Census housing vacancy rate. Structural vacancy measure."
+    },
+    "census_vacant_units": {
+      "type": "int",
+      "description": "Count of census-vacant housing units."
+    },
+    "active_vacancy_count": {
+      "type": "int",
+      "source": "vacancies.json",
+      "intervention_variable": true,
+      "description": "Number of actively tracked vacant/blighted parcels. PRIMARY INTERVENTION VARIABLE: reducing this is a key policy lever. Expect positive coefficient with crime (more vacancies \u2192 more crime)."
+    },
+    "avg_condition_rating": {
+      "type": "float",
+      "range": "1-5",
+      "description": "Average condition rating of vacant parcels (5=worst). Higher = more blighted."
+    },
+    "condemned_count": {
+      "type": "int",
+      "description": "Number of condemned properties. Extreme blight indicator."
+    },
+    "total_violation_count": {
+      "type": "int",
+      "description": "Sum of code violations across all vacant parcels."
+    },
+    "violations_per_vacancy": {
+      "type": "float",
+      "description": "Average violations per vacant parcel. Intensity of blight."
+    },
+    "transit_stop_count": {
+      "type": "int",
+      "source": "stops.geojson",
+      "intervention_variable": true,
+      "description": "Number of transit stops in neighborhood. Intervention variable: adding stops may affect crime patterns. Direction of effect is ambiguous (access vs. routine activity)."
+    },
+    "transit_trip_count": {
+      "type": "int",
+      "description": "Total weekly transit trips serving stops in this neighborhood."
+    },
+    "transit_route_count": {
+      "type": "int",
+      "description": "Number of distinct routes serving this neighborhood."
+    },
+    "transit_trips_per_1000pop": {
+      "type": "float",
+      "description": "Transit service intensity normalized by population."
+    },
+    "csb_complaint_count": {
+      "type": "int",
+      "source": "csb_2025.json",
+      "description": "Total 311 service requests. Proxy for neighborhood disorder and engaged citizenship."
+    },
+    "csb_vacant_bldg_complaints": {
+      "type": "int",
+      "description": "311 complaints specifically about vacant buildings. More direct disorder signal than total complaints."
+    },
+    "csb_avg_resolution_days": {
+      "type": "float",
+      "description": "Average days to resolve a 311 complaint. Government service quality proxy."
+    },
+    "complaints_per_1000pop": {
+      "type": "float",
+      "description": "311 complaint rate per 1,000 residents."
+    },
+    "city_monthly_crime": {
+      "type": "int",
+      "description": "City-wide total crime incidents for this month. Use as a time-varying control or to construct month fixed effects."
+    },
+    "est_monthly_crime_count": {
+      "type": "float",
+      "TARGET": true,
+      "description": "ESTIMATED monthly neighborhood crime count. Constructed as: (neighborhood crime share) \u00d7 (city monthly total) \u00d7 noise(0.9-1.1). NOTE: This is an estimate, not ground truth \u2014 neighborhood monthly crime is not directly available in source data. Use crime_rate_per_1000pop for cross-sectional targets."
+    },
+    "neigh_total_crime_snapshot": {
+      "type": "int",
+      "TARGET": true,
+      "description": "Neighborhood total crime incidents (snapshot, all months combined). Best available ground truth. Use for cross-sectional regression."
+    },
+    "firearm_incidents_snapshot": {
+      "type": "int",
+      "TARGET": true,
+      "description": "Neighborhood firearm-related incidents (snapshot). Sub-category target for violent crime analysis."
+    },
+    "crime_rate_per_1000pop": {
+      "type": "float",
+      "TARGET": true,
+      "RECOMMENDED_PRIMARY_TARGET": true,
+      "description": "Crime incidents per 1,000 residents (snapshot). RECOMMENDED primary target for cross-sectional OLS. Normalizes for population size."
+    },
+    "firearm_rate_per_1000pop": {
+      "type": "float",
+      "TARGET": true,
+      "description": "Firearm incidents per 1,000 residents. Secondary target."
+    }
+  },
+  "modeling_notes": {
+    "panel_regression": {
+      "recommended_library": "statsmodels (linearmodels PanelOLS)",
+      "code_sketch": "from linearmodels.panel import PanelOLS; model = PanelOLS(dep, exog, entity_effects=True, time_effects=True)",
+      "entity_index": "neighborhood_id",
+      "time_index": "month",
+      "key_regressors": [
+        "active_vacancy_count",
+        "transit_stop_count",
+        "csb_complaint_count",
+        "census_vacancy_rate"
+      ],
+      "controls": [
+        "population",
+        "pct_black",
+        "pct_hispanic",
+        "month_num"
+      ],
+      "target": "est_monthly_crime_count or crime_rate_per_1000pop"
+    },
+    "cross_sectional_ols": {
+      "recommended_library": "sklearn LinearRegression or statsmodels OLS",
+      "target": "crime_rate_per_1000pop",
+      "key_regressors": [
+        "active_vacancy_count",
+        "transit_stop_count",
+        "csb_vacant_bldg_complaints",
+        "avg_condition_rating",
+        "census_vacancy_rate"
+      ],
+      "controls": [
+        "population",
+        "pct_black"
+      ],
+      "note": "63 training observations \u2014 keep model simple, regularize with Ridge if needed"
+    },
+    "simulator_use": {
+      "description": "Extract OLS/FE coefficients \u2192 store as JSON \u2192 simulator applies: delta_crime = coeff_vacancy \u00d7 delta_vacancies + coeff_transit \u00d7 delta_stops + ...",
+      "example": "Remediating 20 vacancies: delta_crime_rate = beta_vacancy \u00d7 (-20)"
+    },
+    "caveats": [
+      "Crime data is a neighborhood snapshot (not monthly per neighborhood). Monthly values are estimated from city-level trends.",
+      "Causality cannot be inferred \u2014 only correlations. Neighborhood fixed effects reduce (but don't eliminate) omitted variable bias.",
+      "79 neighborhoods is a small N for cross-sectional OLS. Fixed-effects panel exploits the time dimension but relies on estimated monthly values.",
+      "ARPA data is not available at neighborhood level \u2014 only city-wide by category. Exclude from regression or use as uniform time trend.",
+      "Transit stop assignments use ray-casting point-in-polygon; ~1,755 of 5,113 stops matched to neighborhoods (others may be suburban or in boundaries)."
+    ]
+  }
+}
