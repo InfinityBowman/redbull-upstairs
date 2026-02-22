@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Search01Icon } from '@hugeicons/core-free-icons'
+import {
+  Cancel01Icon,
+  Search01Icon,
+  SentIcon,
+} from '@hugeicons/core-free-icons'
 import { useData, useExplorer } from './ExplorerProvider'
 import { useChartBuilder } from './analytics/chart-builder/useChartBuilder'
 import type { ActionResult } from '@/lib/ai/action-executor'
@@ -10,8 +14,7 @@ import { commandBarEvents } from '@/lib/ai/command-bar-events'
 import { buildKpiSnapshot } from '@/lib/ai/kpi-snapshot'
 import { buildSystemPrompt } from '@/lib/ai/system-prompt'
 import { useChat } from '@/lib/ai/use-chat'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { VisuallyHidden } from 'radix-ui'
+import { cn } from '@/lib/utils'
 
 const SUGGESTIONS = [
   'Show me crime hotspots',
@@ -40,20 +43,23 @@ export function CommandBar() {
         e.preventDefault()
         setOpen((prev) => !prev)
       }
+      if (e.key === 'Escape' && open) {
+        setOpen(false)
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [open])
 
   // Listen for global event emitter (from Nav button)
   useEffect(() => {
     return commandBarEvents.listen(() => setOpen(true))
   }, [])
 
-  // Focus input when dialog opens
+  // Focus input when panel opens
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 50)
+      setTimeout(() => inputRef.current?.focus(), 100)
     }
   }, [open])
 
@@ -102,39 +108,63 @@ export function CommandBar() {
     }
   }
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent
-        showCloseButton={false}
-        className="top-[15%] translate-y-0 sm:max-w-xl"
-        aria-describedby={undefined}
-      >
-        <VisuallyHidden.Root>
-          <DialogTitle>Ask AI</DialogTitle>
-        </VisuallyHidden.Root>
-        {/* Input area */}
-        <div className="flex items-center gap-2">
-          <HugeiconsIcon icon={Search01Icon} size={16} strokeWidth={2} className="shrink-0 text-muted-foreground" />
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about the data..."
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
-            disabled={isStreaming}
-          />
-          {isStreaming && (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-          )}
-        </div>
+  if (!open) return null
 
-        {/* Messages area */}
-        {messages.length > 0 && (
-          <div
-            ref={scrollRef}
-            className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto border-t border-border/40 pt-3"
-          >
+  return (
+    <div
+      className={cn(
+        'fixed bottom-4 z-50 flex w-[420px] flex-col',
+        'left-[calc(280px+(100vw-280px)/2)] -translate-x-1/2',
+        'rounded-xl border border-border/60 bg-card/90 shadow-xl backdrop-blur-xl',
+        'animate-in fade-in slide-in-from-bottom-3 duration-200',
+        'max-sm:inset-x-2 max-sm:bottom-2 max-sm:w-auto max-sm:translate-x-0',
+      )}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border/40 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <HugeiconsIcon
+            icon={Search01Icon}
+            size={14}
+            strokeWidth={2}
+            className="text-muted-foreground"
+          />
+          <span className="text-xs font-medium text-muted-foreground">
+            Ask AI
+          </span>
+        </div>
+        <button
+          onClick={() => setOpen(false)}
+          className="rounded-md p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent/40 hover:text-foreground"
+        >
+          <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2} />
+        </button>
+      </div>
+
+      {/* Messages area */}
+      <div
+        ref={scrollRef}
+        className="flex max-h-[50vh] min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3"
+        style={{ scrollbarGutter: 'stable' }}
+      >
+        {messages.length === 0 ? (
+          /* Suggestions when empty */
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              Suggestions
+            </span>
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                onClick={() => handleSubmit(s)}
+                className="rounded-md px-2 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <>
             {messages.map((msg, i) => (
               <div key={i} className="flex flex-col gap-1">
                 {msg.role === 'user' ? (
@@ -142,7 +172,7 @@ export function CommandBar() {
                     {msg.content}
                   </div>
                 ) : (
-                  <div className="text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                  <div className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
                     {msg.content}
                   </div>
                 )}
@@ -162,37 +192,33 @@ export function CommandBar() {
                 ))}
               </div>
             )}
-          </div>
+          </>
         )}
+      </div>
 
-        {/* Suggestions when empty */}
-        {messages.length === 0 && (
-          <div className="flex flex-col gap-1 border-t border-border/40 pt-3">
-            <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-muted-foreground/60">
-              Suggestions
-            </span>
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                onClick={() => handleSubmit(s)}
-                className="rounded-md px-2 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+      {/* Input area */}
+      <div className="flex items-center gap-2 border-t border-border/40 px-3 py-2">
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about the data..."
+          className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
+          disabled={isStreaming}
+        />
+        {isStreaming ? (
+          <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+        ) : (
+          <button
+            onClick={() => handleSubmit()}
+            disabled={!input.trim()}
+            className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-accent/40 hover:text-foreground disabled:opacity-30"
+          >
+            <HugeiconsIcon icon={SentIcon} size={14} strokeWidth={2} />
+          </button>
         )}
-
-        {/* Footer hint */}
-        <div className="flex items-center justify-between border-t border-border/40 pt-2">
-          <span className="text-[0.6rem] text-muted-foreground/50">
-            Powered by AI — results may not be exact
-          </span>
-          <kbd className="rounded border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[0.55rem] text-muted-foreground">
-            ESC
-          </kbd>
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   )
 }

@@ -223,7 +223,7 @@ function LayerCard({
         )}
       >
         <div className="overflow-hidden">
-          <div className="px-3.5 pb-2.5 pl-[3.25rem]">
+          <div className="px-3.5 pb-2.5 pl-6">
             <div className="flex flex-col gap-1.5">
               <LayerContent layerKey={layer.key} />
             </div>
