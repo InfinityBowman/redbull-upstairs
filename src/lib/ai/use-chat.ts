@@ -44,6 +44,8 @@ export function useChat() {
   const [messages, setMessages] = useState<Array<ChatMessage>>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [toolCalls, setToolCalls] = useState<Array<ToolCall>>([])
+  /** Tool names currently being resolved (visible to UI during streaming) */
+  const [pendingTools, setPendingTools] = useState<Array<string>>([])
   const abortRef = useRef<AbortController | null>(null)
   const messagesRef = useRef(messages)
   useEffect(() => { messagesRef.current = messages }, [messages])
@@ -55,6 +57,7 @@ export function useChat() {
       context: string,
       signal: AbortSignal,
       onText: (fullText: string) => void,
+      onToolStart?: (name: string) => void,
     ): Promise<StreamOneTurnResult> => {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -102,6 +105,7 @@ export function useChat() {
                   name: parsed.name,
                   args: parsed.arguments ?? '',
                 })
+                onToolStart?.(parsed.name)
               } else if (currentEvent === 'tool_call_chunk') {
                 const idx = parsed.index as number
                 const part = toolCallParts.get(idx)
@@ -158,6 +162,7 @@ export function useChat() {
       setMessages((prev) => [...prev, userMsg])
       setIsStreaming(true)
       setToolCalls([])
+      setPendingTools([])
 
       // Build initial wire messages from conversation history
       const wireMessages: Array<WireMessage> = [
@@ -193,6 +198,7 @@ export function useChat() {
             context,
             signal,
             updateAssistantMessage,
+            (name) => setPendingTools((prev) => [...prev, name]),
           )
 
           responseText = result.text
@@ -204,9 +210,13 @@ export function useChat() {
           const uiTools = result.tools.filter((tc) => !DATA_TOOL_NAMES.has(tc.name))
           allUiTools.push(...uiTools)
 
+          // Emit UI tools immediately so the dashboard updates while we keep looping
+          if (uiTools.length > 0) {
+            setToolCalls([...allUiTools])
+          }
+
           // If no data tools, we're done looping
           if (dataTools.length === 0 || !resolveDataTools) {
-            // Still collect any remaining UI tools
             break
           }
 
@@ -254,6 +264,7 @@ export function useChat() {
         }
       } finally {
         setIsStreaming(false)
+        setPendingTools([])
       }
 
       // Set UI tools for the CommandBar to execute
@@ -312,5 +323,5 @@ export function useChat() {
     setIsStreaming(false)
   }, [])
 
-  return { messages, isStreaming, sendMessage, toolCalls, cancel, reset }
+  return { messages, isStreaming, sendMessage, toolCalls, pendingTools, cancel, reset }
 }

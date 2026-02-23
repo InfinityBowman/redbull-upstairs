@@ -4,6 +4,7 @@ import {
   Cancel01Icon,
   Delete02Icon,
   SentIcon,
+  StopIcon,
 } from '@hugeicons/core-free-icons'
 import { useData, useExplorer } from './ExplorerProvider'
 import { useChartBuilder } from './analytics/chart-builder/useChartBuilder'
@@ -16,6 +17,74 @@ import { buildSystemPrompt } from '@/lib/ai/system-prompt'
 import type { ToolCall } from '@/lib/ai/use-chat'
 import { useChat } from '@/lib/ai/use-chat'
 import { cn } from '@/lib/utils'
+
+/** Human-friendly labels for tool names shown during streaming */
+const TOOL_LABELS: Record<string, string> = {
+  set_layers: 'Updating layers',
+  set_filters: 'Setting filters',
+  select_neighborhood: 'Selecting neighborhood',
+  select_entity: 'Selecting entity',
+  toggle_analytics: 'Opening analytics',
+  configure_chart: 'Configuring chart',
+  clear_selection: 'Clearing selection',
+  get_city_summary: 'Fetching city stats',
+  get_neighborhood_detail: 'Looking up neighborhood',
+  get_rankings: 'Ranking neighborhoods',
+  get_category_breakdown: 'Analyzing categories',
+  get_arpa_data: 'Querying ARPA data',
+  get_food_access: 'Checking food access',
+}
+
+const THINKING_WORDS = [
+  'Pondering',
+  'Crunching data',
+  'Thinking hard',
+  'Digging in',
+  'On it',
+  'Sifting through',
+  'Connecting dots',
+]
+
+/** Smoothly reveals text character-by-character instead of in chunky SSE bursts */
+function useSmoothedText(target: string, charsPerFrame = 2) {
+  const [displayed, setDisplayed] = useState(target)
+  const displayedRef = useRef(target)
+  const targetRef = useRef(target)
+  const rafRef = useRef<number>(0)
+
+  useEffect(() => {
+    targetRef.current = target
+
+    const tick = () => {
+      const current = displayedRef.current
+      const goal = targetRef.current
+
+      if (current.length < goal.length) {
+        const next = goal.slice(0, current.length + charsPerFrame)
+        displayedRef.current = next
+        setDisplayed(next)
+        rafRef.current = requestAnimationFrame(tick)
+      } else if (current !== goal) {
+        // Target shrunk (reset/new conversation) — snap immediately
+        displayedRef.current = goal
+        setDisplayed(goal)
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [target, charsPerFrame])
+
+  // Snap to empty on reset
+  useEffect(() => {
+    if (target === '') {
+      displayedRef.current = ''
+      setDisplayed('')
+    }
+  }, [target])
+
+  return displayed
+}
 
 const SUGGESTIONS = [
   'Show me crime hotspots',
@@ -35,13 +104,27 @@ export function CommandBar() {
   const { state, dispatch } = useExplorer()
   const data = useData()
   const [, chartDispatch] = useChartBuilder()
-  const { messages, isStreaming, sendMessage, toolCalls, reset } = useChat()
+  const { messages, isStreaming, sendMessage, toolCalls, pendingTools, cancel, reset } = useChat()
+  const [thinkingWord, setThinkingWord] = useState('')
+
+  // Pick a random thinking word each time streaming starts
+  useEffect(() => {
+    if (isStreaming) {
+      setThinkingWord(THINKING_WORDS[Math.floor(Math.random() * THINKING_WORDS.length)])
+    }
+  }, [isStreaming])
+
+  // Smooth the last assistant message text during streaming
+  const lastMsg = messages.at(-1)
+  const rawStreamingText = isStreaming && lastMsg?.role === 'assistant' ? lastMsg.content : ''
+  const smoothedText = useSmoothedText(rawStreamingText)
 
   // Refs for values needed in tool execution (avoids re-running effect on state changes)
   const stateRef = useRef(state)
   stateRef.current = state
   const dataRef = useRef(data)
   dataRef.current = data
+  const executedToolIdsRef = useRef(new Set<string>())
 
   // Global keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
@@ -70,17 +153,19 @@ export function CommandBar() {
     }
   }, [open])
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages, smoothed text, or tool activity change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, smoothedText, pendingTools])
 
-  // Execute tool calls when they arrive (only re-run when toolCalls changes)
+  // Execute tool calls as they arrive — only run ones we haven't executed yet
   useEffect(() => {
     if (toolCalls.length === 0) return
-    const results: Array<ActionResult> = []
+    const newTools = toolCalls.filter((tc) => !executedToolIdsRef.current.has(tc.id))
+    if (newTools.length === 0) return
+
     // Track toggled layers to prevent double-toggle when multiple tool calls
     // try to enable the same layer (state snapshot is stale within this batch)
     const toggledLayers = new Set<string>()
@@ -91,7 +176,9 @@ export function CommandBar() {
       }
       dispatch(action)
     }
-    for (const tc of toolCalls) {
+    const results: Array<ActionResult> = []
+    for (const tc of newTools) {
+      executedToolIdsRef.current.add(tc.id)
       const result = executeToolCall(tc, {
         state: stateRef.current,
         dispatch: guardedDispatch,
@@ -100,7 +187,7 @@ export function CommandBar() {
       })
       results.push(result)
     }
-    setActionResults(results)
+    setActionResults((prev) => [...prev, ...results])
   }, [toolCalls, dispatch, chartDispatch])
 
   // Resolve data tool calls against current ExplorerData
@@ -117,6 +204,7 @@ export function CommandBar() {
 
       setInput('')
       setActionResults([])
+      executedToolIdsRef.current.clear()
 
       const kpiSnapshot = buildKpiSnapshot(data)
       const context = buildSystemPrompt(state, kpiSnapshot, data)
@@ -199,22 +287,40 @@ export function CommandBar() {
           </div>
         ) : (
           <>
-            {messages.map((msg, i) => (
-              <div key={i} className="flex flex-col gap-1">
-                {msg.role === 'user' ? (
-                  <div className="text-xs font-medium text-foreground">
-                    {msg.content}
-                  </div>
-                ) : (
-                  <div className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                    {msg.content}
-                  </div>
-                )}
-              </div>
-            ))}
+            {messages.map((msg, i) => {
+              const isLastAssistant = isStreaming && msg.role === 'assistant' && i === messages.length - 1
+              return (
+                <div key={i} className="flex flex-col gap-1">
+                  {msg.role === 'user' ? (
+                    <div className="text-xs font-medium text-foreground">
+                      {msg.content}
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+                      {isLastAssistant ? smoothedText : msg.content}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
 
-            {/* Action badges */}
-            {actionResults.some((r) => r.description) && (
+            {/* Live tool activity during streaming */}
+            {isStreaming && pendingTools.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {pendingTools.map((name, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[0.6rem] font-medium text-brand"
+                  >
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
+                    {TOOL_LABELS[name] ?? name}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Action badges (after streaming completes) */}
+            {!isStreaming && actionResults.some((r) => r.description) && (
               <div className="flex flex-wrap gap-1.5">
                 {actionResults
                   .filter((r) => r.description)
@@ -272,11 +378,17 @@ export function CommandBar() {
           disabled={isStreaming}
         />
         {isStreaming ? (
-          <div className="flex shrink-0 items-center gap-1.5">
-            <span className="text-[0.6rem] text-muted-foreground/60">
-              thinking...
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="animate-pulse text-[0.6rem] text-muted-foreground/60">
+              {thinkingWord}...
             </span>
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+            <button
+              onClick={cancel}
+              title="Stop generating"
+              className="rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+            >
+              <HugeiconsIcon icon={StopIcon} size={14} strokeWidth={2} />
+            </button>
           </div>
         ) : (
           <button
