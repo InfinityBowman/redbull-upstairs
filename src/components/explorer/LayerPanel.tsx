@@ -8,7 +8,6 @@ import {
   Store01Icon,
   UserGroupIcon,
   DollarCircleIcon,
-  BubbleChatAddIcon,
 } from '@hugeicons/core-free-icons'
 import { useData, useExplorer } from './ExplorerProvider'
 import { Slider } from '@/components/ui/slider'
@@ -72,13 +71,6 @@ const LAYER_CONFIG: Array<{
     color: '#10b981',
     desc: 'Federal relief spending analytics',
     icon: DollarCircleIcon,
-  },
-  {
-    key: 'communityVoice',
-    label: 'Community Voice',
-    color: '#ec4899',
-    desc: 'Resident feedback & sentiment',
-    icon: BubbleChatAddIcon,
   },
 ]
 
@@ -282,8 +274,6 @@ function LayerContent({ layerKey }: { layerKey: keyof LayerToggles }) {
       return <DemographicsFilters />
     case 'arpa':
       return <ArpaFilters />
-    case 'communityVoice':
-      return <CommunityVoiceFilters />
   }
 }
 
@@ -763,24 +753,3 @@ function ArpaFilters() {
   )
 }
 
-function CommunityVoiceFilters() {
-  return (
-    <div className="flex flex-col gap-1.5 text-[0.62rem]">
-      <div className="flex items-center gap-1.5 text-foreground/50">
-        <div className="h-1 w-1 rounded-full bg-pink-500/60" />
-        Click markers to read resident quotes
-      </div>
-      <div className="flex flex-wrap gap-1 pt-1">
-        <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-emerald-600 dark:text-emerald-400">
-          Positive
-        </span>
-        <span className="rounded bg-gray-500/20 px-1.5 py-0.5 text-gray-600 dark:text-gray-400">
-          Neutral
-        </span>
-        <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-red-600 dark:text-red-400">
-          Concern
-        </span>
-      </div>
-    </div>
-  )
-}

@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { useData } from '../ExplorerProvider'
-import { AIInsightNarrative } from '../insights/AIInsightNarrative'
 import { DetailRow, DetailSection, ScoreBar } from './shared'
 import { useNeighborhoodMetrics } from './useNeighborhoodMetrics'
 import { haversine, polygonCentroid } from '@/lib/equity'
@@ -73,16 +72,6 @@ export function NeighborhoodDetail({ id }: { id: string }) {
           </div>
         </div>
       </div>
-
-      {/* AI Insights */}
-      <AIInsightNarrative
-        name={metrics.name}
-        compositeScore={metrics.compositeScore}
-        totalComplaints={hood.total}
-        stopsNearby={metrics.stopsNearby}
-        nearestGroceryDist={metrics.nearestGroceryDist}
-        vacancyCount={metrics.vacancyCount}
-      />
 
       {/* Score bars */}
       <div className="flex flex-col gap-2">

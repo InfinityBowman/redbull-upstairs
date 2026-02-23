@@ -46,9 +46,9 @@ File-based routing via TanStack Router. Route tree is auto-generated in `src/rou
 
 - `/` — Landing page (`_bare` layout)
 - `/explore` — Unified Map Explorer (fullscreen map with layer toggles, detail panel, analytics drawer, AI command bar)
-- `/housing` — Housing Prices dashboard
-- `/affected` — Affected Neighborhoods dashboard
-- `/population` — Population trends + migration dashboard
+- `/housing` — Housing Prices (placeholder — needs real data source)
+- `/affected` — Affected Neighborhoods (placeholder — needs real data source)
+- `/population` — Population trends (placeholder — needs real data source)
 - `/about` — About page
 - `/api/chat` — AI chat server endpoint (POST, uses OpenRouter)
 
@@ -56,7 +56,7 @@ File-based routing via TanStack Router. Route tree is auto-generated in `src/rou
 
 All data lives in `public/data/` as static JSON/GeoJSON files. `ExplorerProvider` manages all state via `useReducer` and data fetching via `useState` + lazy loading. Base datasets (neighborhoods, routes, grocery stores) load on mount; layer-specific datasets load on toggle. Expensive computations are memoized with `useMemo`.
 
-Key datasets: `csb_latest.json` (311 complaints), `neighborhoods.geojson` (79 boundaries), `stops.geojson`/`shapes.geojson`/`routes.json` (transit GTFS), `food_deserts.geojson`, `grocery_stores.geojson`, `crime.json` (SLMPD crime incidents), `arpa.json` (ARPA fund expenditures), `demographics.json` (census demographics by neighborhood), `vacancies.json` (real vacant building data). Vacancy falls back to mock data (`src/lib/vacancy-data.ts`) if real data is unavailable.
+Key datasets: `csb_latest.json` (311 complaints), `neighborhoods.geojson` (79 boundaries), `stops.geojson`/`shapes.geojson`/`routes.json` (transit GTFS), `food_deserts.geojson`, `grocery_stores.geojson`, `crime.json` (SLMPD crime incidents), `arpa.json` (ARPA fund expenditures), `demographics.json` (census demographics by neighborhood), `vacancies.json` (vacant building data).
 
 The data pipeline is split into two scripts: `python/scripts/fetch_raw.py` downloads raw datasets into `python/data/raw/`, and `python/scripts/clean_data.py` processes them into the JSON/GeoJSON files in `public/data/`.
 
@@ -64,18 +64,15 @@ The data pipeline is split into two scripts: `python/scripts/fetch_raw.py` downl
 
 - `src/routes/` — `_bare/index.tsx` (landing), `_app/explore.tsx` (Map Explorer), `_app/housing.tsx`, `_app/affected.tsx`, `_app/population.tsx`, `_app/about.tsx`, `api/chat.ts` (AI endpoint)
 - `src/components/explorer/` — Core app: `MapExplorer.tsx` (CSS grid layout), `ExplorerProvider.tsx` (state + data), `ExplorerMap.tsx` (Mapbox canvas + click handler), `LayerPanel.tsx` (left rail), `DetailPanel.tsx` (right rail), `AnalyticsPanel.tsx` (bottom drawer), `CommandBar.tsx` (AI chat), `TimeRangeSlider.tsx` (temporal filter)
-- `src/components/explorer/layers/` — Map layers: `NeighborhoodBaseLayer`, `ComplaintsLayer`, `CrimeLayer`, `TransitLayer`, `VacancyLayer`, `FoodAccessLayer`, `DemographicsLayer`, `HousingPriceLayer`, `CommunityVoiceLayer`, `AffectedNeighborhoodsLayer`, `StandaloneNeighborhoodLayer`
-- `src/components/explorer/detail/` — Entity detail views: `NeighborhoodDetail`, `NeighborhoodComparePanel`, `VacancyDetail`, `StopDetail`, `GroceryDetail`, `FoodDesertDetail`, `CommunityVoiceDetail`, `useNeighborhoodMetrics` hook
+- `src/components/explorer/layers/` — Map layers: `NeighborhoodBaseLayer`, `ComplaintsLayer`, `CrimeLayer`, `TransitLayer`, `VacancyLayer`, `FoodAccessLayer`, `DemographicsLayer`, `StandaloneNeighborhoodLayer`
+- `src/components/explorer/detail/` — Entity detail views: `NeighborhoodDetail`, `NeighborhoodComparePanel`, `VacancyDetail`, `StopDetail`, `GroceryDetail`, `FoodDesertDetail`, `useNeighborhoodMetrics` hook
 - `src/components/explorer/analytics/` — Analytics modules: `ComplaintsAnalytics`, `CrimeAnalytics`, `TransitAnalytics`, `VacancyAnalytics`, `ArpaAnalytics`, `DemographicsAnalytics`, `NeighborhoodAnalytics`, `MiniKpi`, `chart-builder/` (ChartCanvas, ChartControls, useChartBuilder)
-- `src/components/explorer/insights/` — `AIInsightNarrative` (AI-generated data narratives)
-- `src/components/explorer/dashboard/` — Standalone dashboards: `AffectedNeighborhoodsDashboard`, `HousingPricesDashboard`, `HousingPriceHistoryChart`
 - `src/components/landing/` — `LandingPage`
 - `src/components/about/` — `AboutPage`
-- `src/components/population/` — `PopulationDashboard`, `PopulationHistoryChart`, `MigrationFlowChart`, demographic/education/housing/infrastructure/destination/migration-reasons cards
 - `src/components/map/` — `MapProvider` (Mapbox wrapper), `MapLegend`
 - `src/components/charts/` — Reusable charts: `TimeSeriesChart`, `CategoryBarChart`, `HourlyChart`, `WeekdayChart`, `WeatherInsights`
 - `src/components/ui/` — shadcn/ui primitives
-- `src/lib/` — Business logic: `analysis.ts` (hotspot detection, weather correlation), `equity.ts` (haversine, equity scoring), `scoring.ts` (vacancy triage), `colors.ts` (choropleth scales), `types.ts` (all interfaces), `explorer-types.ts` (state/action types), `vacancy-data.ts` (mock generator), `chart-datasets.ts` (ChartBuilder datasets), `community-voices.ts`, `migration-data.ts`, `neighborhood-metrics.ts`, `population-history.ts`, `price-data.ts`
+- `src/lib/` — Business logic: `analysis.ts` (hotspot detection, weather correlation), `equity.ts` (haversine, equity scoring), `scoring.ts` (vacancy triage), `colors.ts` (choropleth scales), `types.ts` (all interfaces), `explorer-types.ts` (state/action types), `chart-datasets.ts` (ChartBuilder datasets), `neighborhood-metrics.ts`
 - `src/lib/ai/` — AI system: `system-prompt.ts`, `tools.ts`, `use-chat.ts`, `action-executor.ts`, `data-executor.ts`, `kpi-snapshot.ts`, `neighborhood-resolver.ts`, `command-bar-events.ts`
 
 ### Map Setup

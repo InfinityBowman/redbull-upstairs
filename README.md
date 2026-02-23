@@ -1,6 +1,6 @@
 # STL Urban Analytics
 
-A unified urban data analytics platform for the City of St. Louis, combining **311 complaints**, **crime data**, **transit equity**, **vacancy triage**, **food access**, **census demographics**, **ARPA fund expenditures**, **housing prices**, and **population migration** into a multi-page dashboard with an AI-powered Map Explorer and dedicated analysis views.
+A unified urban data analytics platform for the City of St. Louis, combining **311 complaints**, **crime data**, **transit equity**, **vacancy triage**, **food access**, **census demographics**, and **ARPA fund expenditures** into an AI-powered Map Explorer with integrated analytics.
 
 Built for the _St. Louis Sustainable Urban Innovation_ hackathon track.
 
@@ -12,7 +12,7 @@ Splash page introducing the platform with navigation to the main dashboards.
 
 ### Map Explorer (`/explore`)
 
-A fullscreen, map-centric dashboard with eleven toggleable data layers, an AI command bar, and integrated analytics.
+A fullscreen, map-centric dashboard with seven toggleable data layers, an AI command bar, and integrated analytics.
 
 #### Layout
 
@@ -38,32 +38,23 @@ A fullscreen, map-centric dashboard with eleven toggleable data layers, an AI co
 
 **ARPA Funds** — Analytics-only layer (no map visualization). Monthly spending + cumulative line, category breakdown, top vendors and projects lists.
 
-**Housing Prices** — Housing price choropleth/heatmap by neighborhood.
-
-**Community Voice** — Community input and sentiment layer with detail views.
-
-**Affected Neighborhoods** — Highlighted neighborhoods based on cross-dataset risk factors.
-
-**Standalone Neighborhood** — Independent neighborhood visualization layer.
-
 #### Cross-Dataset Features
 
 - **Neighborhood click** — Eagerly loads all datasets. Detail panel shows composite equity score (transit + 311 + food + vacancy) with breakdown bars. Analytics switches to cross-dataset view with top 311 issues chart and best rehab candidates.
 - **Neighborhood comparison** — Side-by-side comparison of metrics across neighborhoods.
 - **ChartBuilder** — User-configurable charts from underlying datasets with multi-series support, chart type toggles, and dual-axis.
-- **AI Insights** — AI-generated narrative analysis of neighborhood data and trends.
 
 ### Housing Prices (`/housing`)
 
-Dedicated housing price analysis dashboard with historical price trends and neighborhood-level breakdowns.
+Placeholder — real housing data integration in progress.
 
 ### Affected Areas (`/affected`)
 
-Dashboard highlighting the most affected neighborhoods across multiple urban factors, with cross-dataset scoring.
+Placeholder — real neighborhood impact data integration in progress.
 
 ### Population (`/population`)
 
-Population trends dashboard with migration flow analysis, demographic breakdowns, education metrics, housing statistics, infrastructure data, and destination/migration-reasons cards.
+Placeholder — real Census population data integration in progress.
 
 ### About (`/about`)
 
@@ -80,7 +71,7 @@ Project information and methodology overview.
 | Charts        | [Recharts](https://recharts.org/)                                                                               |
 | Hosting       | [Cloudflare Workers](https://developers.cloudflare.com/workers/) via `@cloudflare/vite-plugin`                  |
 | AI            | [OpenRouter](https://openrouter.ai/) API via server function + tool-use chat                                    |
-| Data          | Static JSON/GeoJSON in `public/data/`, real vacancy data with mock fallback                                     |
+| Data          | Static JSON/GeoJSON in `public/data/` from civic APIs                                                           |
 | Data Pipeline | Python 3.12 + [uv](https://docs.astral.sh/uv/) (pandas, geopandas, shapely)                                     |
 | ML            | OLS regression models for housing/neighborhood predictions                                                      |
 | Analysis      | Jupyter notebooks with matplotlib + folium                                                                      |
@@ -155,9 +146,9 @@ src/
 │   ├── _app.tsx                  App layout (nav shell)
 │   ├── _app/
 │   │   ├── explore.tsx           Map Explorer
-│   │   ├── housing.tsx           Housing Prices dashboard
-│   │   ├── affected.tsx          Affected Neighborhoods dashboard
-│   │   ├── population.tsx        Population dashboard
+│   │   ├── housing.tsx           Housing Prices (placeholder)
+│   │   ├── affected.tsx          Affected Neighborhoods (placeholder)
+│   │   ├── population.tsx        Population (placeholder)
 │   │   └── about.tsx             About page
 │   └── api/chat.ts              AI chat server endpoint
 ├── components/
@@ -178,9 +169,6 @@ src/
 │   │   │   ├── VacancyLayer.tsx
 │   │   │   ├── FoodAccessLayer.tsx
 │   │   │   ├── DemographicsLayer.tsx
-│   │   │   ├── HousingPriceLayer.tsx
-│   │   │   ├── CommunityVoiceLayer.tsx
-│   │   │   ├── AffectedNeighborhoodsLayer.tsx
 │   │   │   └── StandaloneNeighborhoodLayer.tsx
 │   │   ├── detail/
 │   │   │   ├── NeighborhoodDetail.tsx      Composite score + cross-dataset
@@ -189,8 +177,7 @@ src/
 │   │   │   ├── VacancyDetail.tsx           Triage score breakdown
 │   │   │   ├── StopDetail.tsx              Stop info + routes
 │   │   │   ├── GroceryDetail.tsx           Store + nearest desert
-│   │   │   ├── FoodDesertDetail.tsx        Demographics + equity score
-│   │   │   └── CommunityVoiceDetail.tsx    Community input details
+│   │   │   └── FoodDesertDetail.tsx        Demographics + equity score
 │   │   ├── analytics/
 │   │   │   ├── ComplaintsAnalytics.tsx     311 charts + KPIs
 │   │   │   ├── CrimeAnalytics.tsx         Crime charts + KPIs
@@ -204,27 +191,10 @@ src/
 │   │   │       ├── ChartCanvas.tsx        Chart rendering
 │   │   │       ├── ChartControls.tsx      Chart config UI
 │   │   │       └── useChartBuilder.tsx    Chart state hook
-│   │   ├── insights/
-│   │   │   └── AIInsightNarrative.tsx     AI-generated data narratives
-│   │   └── dashboard/
-│   │       ├── AffectedNeighborhoodsDashboard.tsx
-│   │       ├── HousingPricesDashboard.tsx
-│   │       └── HousingPriceHistoryChart.tsx
 │   ├── landing/
 │   │   └── LandingPage.tsx       Splash / landing page
 │   ├── about/
 │   │   └── AboutPage.tsx         About / methodology
-│   ├── population/
-│   │   ├── PopulationDashboard.tsx        Main population view
-│   │   ├── PopulationHistoryChart.tsx     Historical trends
-│   │   ├── MigrationFlowChart.tsx         Migration flow Sankey
-│   │   ├── DemographicsCard.tsx           Demographics breakdown
-│   │   ├── EducationCard.tsx              Education metrics
-│   │   ├── HousingCard.tsx                Housing statistics
-│   │   ├── InfrastructureCard.tsx         Infrastructure data
-│   │   ├── DestinationsCard.tsx           Migration destinations
-│   │   ├── MigrationReasonsCard.tsx       Why people move
-│   │   └── Card.tsx                       Shared card wrapper
 │   ├── map/
 │   │   ├── MapProvider.tsx       Shared Mapbox GL wrapper (light-v11)
 │   │   └── MapLegend.tsx         Choropleth / gradient legend
@@ -243,13 +213,8 @@ src/
 │   ├── equity.ts                 Haversine, equity gap scoring
 │   ├── scoring.ts                Vacancy triage scoring + best-use
 │   ├── colors.ts                 Choropleth scales, score colors
-│   ├── vacancy-data.ts           Deterministic mock data generator
 │   ├── chart-datasets.ts         ChartBuilder dataset registry
-│   ├── community-voices.ts       Community voice data utilities
-│   ├── migration-data.ts         Migration pattern data
 │   ├── neighborhood-metrics.ts   Neighborhood metric calculations
-│   ├── population-history.ts     Population trend data
-│   ├── price-data.ts             Housing price data
 │   ├── utils.ts                  cn() helper
 │   └── ai/
 │       ├── system-prompt.ts      AI system prompt construction
@@ -303,7 +268,7 @@ python/
 | Transit (GTFS)          | [Metro Transit](https://www.metrostlouis.org/developer-resources/) | Converted from GTFS to GeoJSON |
 | Food Desert Tracts      | USDA Economic Research Service (LILA definitions)                  | Simplified GeoJSON             |
 | Grocery Stores          | Manual compilation + geocoding                                     | GeoJSON                        |
-| Vacant Properties       | City of STL Vacant Building List (fallback: mock data)             | JSON                           |
+| Vacant Properties       | City of STL Vacant Building List                                   | JSON                           |
 | Crime Incidents         | [SLMPD](https://www.slmpd.org/crime_stats.shtml) NIBRS data       | Pre-processed JSON from CSV    |
 | ARPA Expenditures       | [City of STL Open Data](https://www.stlouis-mo.gov/)              | JSON API                       |
 | Census Demographics     | City of STL Planning Dept neighborhood census pages                | Scraped HTML → JSON            |

@@ -14,7 +14,6 @@ import type {
   ExplorerState,
   LayerToggles,
 } from '@/lib/explorer-types'
-import { generateVacancyData } from '@/lib/vacancy-data'
 import { initialExplorerState } from '@/lib/explorer-types'
 
 // ── Reducer ────────────────────────────────────────────────
@@ -212,7 +211,6 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
         break
 
       case 'vacancy':
-        // Try to load real vacancy data; fall back to mock generator
         fetch('/data/vacancies.json')
           .then((r) => {
             if (!r.ok) throw new Error('not found')
@@ -221,12 +219,7 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
           .then((vacancyData) => {
             setData((prev) => ({ ...prev, vacancyData }))
           })
-          .catch(() => {
-            setData((prev) => ({
-              ...prev,
-              vacancyData: generateVacancyData(),
-            }))
-          })
+          .catch(() => markFailed('vacancy'))
         break
 
       case 'foodAccess':

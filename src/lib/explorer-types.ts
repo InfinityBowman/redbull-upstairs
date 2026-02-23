@@ -20,7 +20,6 @@ export type SelectedEntity =
   | { type: 'vacancy'; id: number }
   | { type: 'grocery'; id: number }
   | { type: 'foodDesert'; id: string }
-  | { type: 'communityVoice'; id: string }
 
 // ── Layer State ────────────────────────────────────────────
 
@@ -32,7 +31,6 @@ export interface LayerToggles {
   crime: boolean
   arpa: boolean
   demographics: boolean
-  communityVoice: boolean
 }
 
 export interface SubToggles {
@@ -71,10 +69,6 @@ export interface ExplorerState {
   compareMode: boolean
   compareNeighborhoodA: string | null
   compareNeighborhoodB: string | null
-  priceMode?: boolean
-  priceYear?: number
-  priceNeighborhoodA?: string | null
-  priceNeighborhoodB?: string | null
 }
 
 // ── Actions ────────────────────────────────────────────────
@@ -96,10 +90,6 @@ export type ExplorerAction =
   | { type: 'TOGGLE_COMPARE_MODE' }
   | { type: 'SET_COMPARE_NEIGHBORHOOD'; slot: 'A' | 'B'; id: string }
   | { type: 'CLEAR_COMPARE_NEIGHBORHOOD'; slot: 'A' | 'B' }
-  | { type: 'TOGGLE_PRICE_MODE' }
-  | { type: 'SET_PRICE_YEAR'; year: number }
-  | { type: 'SET_PRICE_NEIGHBORHOOD'; slot: 'A' | 'B'; id: string }
-  | { type: 'CLEAR_PRICE_NEIGHBORHOOD'; slot: 'A' | 'B' }
 
 // ── Data Context ───────────────────────────────────────────
 
@@ -130,7 +120,6 @@ export const initialExplorerState: ExplorerState = {
     crime: false,
     arpa: false,
     demographics: false,
-    communityVoice: false,
   },
   subToggles: {
     complaintsMode: 'choropleth',

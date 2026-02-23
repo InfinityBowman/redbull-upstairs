@@ -8,7 +8,6 @@ import { VacancyLayer } from './layers/VacancyLayer'
 import { FoodAccessLayer } from './layers/FoodAccessLayer'
 import { CrimeLayer } from './layers/CrimeLayer'
 import { DemographicsLayer } from './layers/DemographicsLayer'
-import { CommunityVoiceLayer } from './layers/CommunityVoiceLayer'
 import { TimeRangeSlider } from './TimeRangeSlider'
 import { MapProvider } from '@/components/map/MapProvider'
 import {
@@ -124,21 +123,6 @@ export function ExplorerMap() {
         return
       }
 
-      // 0. Community voice markers (check first - most specific)
-      const voiceFeatures = map.getLayer('voice-circles')
-        ? map.queryRenderedFeatures(point, { layers: ['voice-circles'] })
-        : []
-      if (voiceFeatures.length > 0) {
-        const id = voiceFeatures[0].properties?.id
-        if (id) {
-          currentDispatch({
-            type: 'SELECT_ENTITY',
-            entity: { type: 'communityVoice', id: String(id) },
-          })
-          return
-        }
-      }
-
       // 1. Check vacancy markers first (most specific points)
       const vacancyFeatures = map.getLayer('vacancy-circles')
         ? map.queryRenderedFeatures(point, { layers: ['vacancy-circles'] })
@@ -223,7 +207,6 @@ export function ExplorerMap() {
 
     // Pointer cursor on hover
     const interactiveLayers = [
-      'voice-circles',
       'vacancy-circles',
       'stops-circles',
       'grocery-circles',
@@ -292,7 +275,6 @@ export function ExplorerMap() {
       {state.layers.vacancy && <VacancyLayer />}
       {state.layers.foodAccess && <FoodAccessLayer />}
       {state.layers.demographics && <DemographicsLayer />}
-      {state.layers.communityVoice && <CommunityVoiceLayer />}
 
       {hasLegend && (
         <MapLegend>

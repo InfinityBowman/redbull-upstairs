@@ -5,7 +5,6 @@ import {
   Building03Icon,
   Bus01Icon,
   Store01Icon,
-  BubbleChatAddIcon,
   AlertDiamondIcon,
   Group01Icon,
 } from '@hugeicons/core-free-icons'
@@ -15,7 +14,6 @@ import { VacancyDetail } from './detail/VacancyDetail'
 import { StopDetail } from './detail/StopDetail'
 import { GroceryDetail } from './detail/GroceryDetail'
 import { FoodDesertDetail } from './detail/FoodDesertDetail'
-import { CommunityVoiceDetail } from './detail/CommunityVoiceDetail'
 import { NeighborhoodComparePanel } from './detail/NeighborhoodComparePanel'
 import { Switch } from '@/components/ui/switch'
 
@@ -37,11 +35,6 @@ const ENTITY_CONFIG: Record<
     label: 'Food Desert',
     color: '#ef4444',
     icon: AlertDiamondIcon,
-  },
-  communityVoice: {
-    label: 'Community Voice',
-    color: '#ec4899',
-    icon: BubbleChatAddIcon,
   },
 }
 
@@ -180,9 +173,6 @@ export function DetailPanel() {
         )}
         {displaySelected.type === 'foodDesert' && (
           <FoodDesertDetail id={displaySelected.id} />
-        )}
-        {displaySelected.type === 'communityVoice' && (
-          <CommunityVoiceDetail id={displaySelected.id} />
         )}
       </div>
     </div>
