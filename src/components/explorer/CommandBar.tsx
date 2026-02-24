@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Markdown from 'react-markdown'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
-  Cancel01Icon,
+  ArrowDown01Icon,
   Delete02Icon,
   SentIcon,
   StopIcon,
@@ -16,6 +17,7 @@ import { buildKpiSnapshot } from '@/lib/ai/kpi-snapshot'
 import { buildSystemPrompt } from '@/lib/ai/system-prompt'
 import type { ToolCall } from '@/lib/ai/use-chat'
 import { useChat } from '@/lib/ai/use-chat'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 /** Human-friendly labels for tool names shown during streaming */
@@ -84,6 +86,43 @@ function useSmoothedText(target: string, charsPerFrame = 2) {
   }, [target])
 
   return displayed
+}
+
+/** Compact markdown overrides sized for the command bar */
+const mdComponents = {
+  p: ({ children }: { children?: React.ReactNode }) => (
+    <p className="mb-1.5 last:mb-0">{children}</p>
+  ),
+  strong: ({ children }: { children?: React.ReactNode }) => (
+    <strong className="font-semibold text-foreground">{children}</strong>
+  ),
+  em: ({ children }: { children?: React.ReactNode }) => (
+    <em className="italic">{children}</em>
+  ),
+  h1: ({ children }: { children?: React.ReactNode }) => (
+    <h3 className="mb-1 text-xs font-semibold text-foreground">{children}</h3>
+  ),
+  h2: ({ children }: { children?: React.ReactNode }) => (
+    <h3 className="mb-1 text-xs font-semibold text-foreground">{children}</h3>
+  ),
+  h3: ({ children }: { children?: React.ReactNode }) => (
+    <h3 className="mb-1 text-xs font-semibold text-foreground">{children}</h3>
+  ),
+  ul: ({ children }: { children?: React.ReactNode }) => (
+    <ul className="mb-1.5 list-disc pl-4 last:mb-0">{children}</ul>
+  ),
+  ol: ({ children }: { children?: React.ReactNode }) => (
+    <ol className="mb-1.5 list-decimal pl-4 last:mb-0">{children}</ol>
+  ),
+  li: ({ children }: { children?: React.ReactNode }) => (
+    <li className="mb-0.5">{children}</li>
+  ),
+  code: ({ children }: { children?: React.ReactNode }) => (
+    <code className="rounded bg-accent/60 px-1 py-0.5 text-[0.65rem]">{children}</code>
+  ),
+  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">{children}</a>
+  ),
 }
 
 const SUGGESTIONS = [
@@ -243,23 +282,37 @@ export function CommandBar() {
         </div>
         <div className="flex items-center gap-1">
           {messages.length > 0 && (
-            <button
-              onClick={() => {
-                reset()
-                setActionResults([])
-              }}
-              title="New chat"
-              className="rounded-md p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent/40 hover:text-foreground"
-            >
-              <HugeiconsIcon icon={Delete02Icon} size={14} strokeWidth={2} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => {
+                    reset()
+                    setActionResults([])
+                  }}
+                  className="rounded-md p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent/40 hover:text-foreground"
+                >
+                  <HugeiconsIcon icon={Delete02Icon} size={14} strokeWidth={2} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">New chat</TooltipContent>
+            </Tooltip>
           )}
-          <button
-            onClick={() => setOpen(false)}
-            className="rounded-md p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent/40 hover:text-foreground"
-          >
-            <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-md p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent/40 hover:text-foreground"
+              >
+                <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={2} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Minimize{' '}
+              <kbd className="ml-1 rounded bg-background/20 px-1 py-0.5 text-[0.6rem]" suppressHydrationWarning>
+                {typeof navigator !== 'undefined' && /Mac|iPhone/.test(navigator.userAgent) ? '\u2318K' : 'Ctrl+K'}
+              </kbd>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -289,6 +342,7 @@ export function CommandBar() {
           <>
             {messages.map((msg, i) => {
               const isLastAssistant = isStreaming && msg.role === 'assistant' && i === messages.length - 1
+              const text = isLastAssistant ? smoothedText : msg.content
               return (
                 <div key={i} className="flex flex-col gap-1">
                   {msg.role === 'user' ? (
@@ -296,8 +350,10 @@ export function CommandBar() {
                       {msg.content}
                     </div>
                   ) : (
-                    <div className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                      {isLastAssistant ? smoothedText : msg.content}
+                    <div className="text-xs leading-relaxed text-muted-foreground">
+                      <Markdown components={mdComponents}>
+                        {text}
+                      </Markdown>
                     </div>
                   )}
                 </div>
@@ -379,7 +435,7 @@ export function CommandBar() {
         />
         {isStreaming ? (
           <div className="flex shrink-0 items-center gap-2">
-            <span className="animate-pulse text-[0.6rem] text-muted-foreground/60">
+            <span className="animate-shimmer-text text-[0.6rem] font-medium">
               {thinkingWord}...
             </span>
             <button
